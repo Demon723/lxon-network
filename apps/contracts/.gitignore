@@ -1,0 +1,28 @@
+# Compiler files
+cache/
+out/
+
+# Commonly ignored directories
+.logs/
+.ignore/
+
+# Ignores development broadcast logs
+!/broadcast
+/broadcast/*/31337/
+/broadcast/**/dry-run/
+
+# Docs
+docs/
+
+# Dotenv file
+.env
+.env.*
+!.env.example
+
+# Raw key material that lives in this directory. This repo had zero commits until
+# 2026-10-19, so a first `git add -A` would have committed
+# verification_service_private_key.hex (64 hex chars = an unencrypted secp256k1 private
+# key) forever. Public halves are fine; the private one and any future sibling are not.
+*_private_key.hex
+*.pem
+secret*.txt

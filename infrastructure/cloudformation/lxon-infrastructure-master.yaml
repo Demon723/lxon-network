@@ -1,0 +1,228 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: LXON Blockchain - Complete Infrastructure Stack (Multi-AZ with CloudTrail, CloudWatch, Backup)
+
+Parameters:
+  Environment:
+    Type: String
+    Default: production
+    AllowedValues:
+      - development
+      - staging
+      - production
+    Description: Environment name
+
+  DeploymentType:
+    Type: String
+    Default: multi-az
+    AllowedValues:
+      - single-az
+      - multi-az
+    Description: Deployment architecture type
+
+  InstanceType:
+    Type: String
+    Default: t3.medium
+    AllowedValues:
+      - t3.medium
+      - t3.large
+      - t3.xlarge
+      - m5.large
+      - m5.xlarge
+    Description: EC2 instance type for validators
+
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: SSH key pair name
+
+  VpcCidr:
+    Type: String
+    Default: 10.0.0.0/16
+    Description: VPC CIDR block
+
+  ChainId:
+    Type: Number
+    Default: 724
+    Description: Blockchain chain ID
+
+  BackupRetentionDays:
+    Type: Number
+    Default: 30
+    AllowedValues:
+      - 7
+      - 14
+      - 30
+      - 60
+      - 90
+    Description: Backup retention period in days
+
+  CloudTrailBucketName:
+    Type: String
+    Description: S3 bucket name for CloudTrail logs (must be globally unique)
+
+  EnableCloudTrail:
+    Type: String
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: Enable CloudTrail audit logging
+
+  NotificationEmail:
+    Type: String
+    Default: ""
+    Description: Email address for CloudWatch alarm notifications (optional)
+
+Resources:
+  # SNS Topic for CloudWatch Alarms
+  AlarmTopic:
+    Type: AWS::SNS::Topic
+    Condition: HasNotificationEmail
+    Properties:
+      DisplayName: !Sub ${Environment}-lxon-alarms
+      TopicName: !Sub ${Environment}-lxon-alarms
+
+  AlarmSubscription:
+    Type: AWS::SNS::Subscription
+    Condition: HasNotificationEmail
+    Properties:
+      Protocol: email
+      TopicArn: !Ref AlarmTopic
+      Endpoint: !Ref NotificationEmail
+
+  # CloudTrail Stack
+  CloudTrailStack:
+    Type: AWS::CloudFormation::Stack
+    Condition: EnableCloudTrailCondition
+    Properties:
+      TemplateURL: ./lxon-cloudtrail.yaml
+      Parameters:
+        Environment: !Ref Environment
+        S3BucketName: !Ref CloudTrailBucketName
+        IsMultiRegion: "true"
+        IncludeGlobalServiceEvents: "true"
+
+  # Validator Stack (Single-AZ or Multi-AZ)
+  ValidatorStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !If
+        - UseMultiAZTemplate
+        - ./lxon-validator-multi-az.yaml
+        - ./lxon-validator-single.yaml
+      Parameters:
+        Environment: !Ref Environment
+        InstanceType: !Ref InstanceType
+        KeyName: !Ref KeyName
+        VpcCidr: !Ref VpcCidr
+        ChainId: !Ref ChainId
+        BackupRetentionDays: !Ref BackupRetentionDays
+
+  # Additional CloudWatch Alarms for Block Production
+  BlockProductionAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Alarm if no blocks produced for 10 minutes
+      AlarmName: !Sub ${Environment}-lxon-block-production-stalled
+      MetricName: BlocksProduced
+      Namespace: LXON/Blockchain
+      Statistic: Sum
+      Period: 600
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: LessThanThreshold
+      Dimensions:
+        - Name: Environment
+          Value: !Ref Environment
+      AlarmActions: !If [HasNotificationEmail, !Ref AlarmTopic, !Ref "AWS::NoValue"]
+
+  # CloudWatch Dashboard
+  BlockchainDashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: !Sub ${Environment}-lxon-blockchain
+      DashboardBody: !Sub |
+        {
+          "widgets": [
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 0,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  ["AWS/EC2", "CPUUtilization", {"search": "Environment", "${Environment}"}],
+                  [".", "NetworkIn", ".", {"search": "Environment", "${Environment}"}],
+                  [".", "NetworkOut", ".", {"search": "Environment", "${Environment}"}]
+                ],
+                "period": 300,
+                "stat": "Average",
+                "region": "${AWS::Region}",
+                "title": "Validator Metrics"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 0,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  ["CWAgent", "mem_used_percent", {"search": "Environment", "${Environment}"}],
+                  [".", "disk_used_percent", {"search": "Environment", "${Environment}"}, {"path": "/"}]
+                ],
+                "period": 300,
+                "stat": "Average",
+                "region": "${AWS::Region}",
+                "title": "System Resources"
+              }
+            },
+            {
+              "type": "log",
+              "x": 0,
+              "y": 6,
+              "width": 24,
+              "height": 6,
+              "properties": {
+                "logGroupNames": ["lxon-blockchain/besu"],
+                "region": "${AWS::Region}",
+                "title": "Besu Logs",
+                "view": "timeSeries"
+              }
+            }
+          ]
+        }
+
+Conditions:
+  EnableCloudTrailCondition: !Equals [!Ref EnableCloudTrail, "true"]
+  UseMultiAZTemplate: !Equals [!Ref DeploymentType, "multi-az"]
+  HasNotificationEmail: !Not [!Equals [!Ref NotificationEmail, ""]]
+
+Outputs:
+  ValidatorInstanceIds:
+    Description: Validator instance IDs
+    Value: !GetAtt ValidatorStack.Outputs.ValidatorInstanceIds
+    Export:
+      Name: !Sub ${Environment}-LXONValidatorInstanceIds
+
+  VPCId:
+    Description: VPC ID
+    Value: !GetAtt ValidatorStack.Outputs.VPCId
+    Export:
+      Name: !Sub ${Environment}-LXONVPCId
+
+  BackupVaultArn:
+    Description: AWS Backup Vault ARN
+    Value: !GetAtt ValidatorStack.Outputs.BackupVaultArn
+    Export:
+      Name: !Sub ${Environment}-LXONBackupVaultArn
+
+  CloudTrailArn:
+    Description: CloudTrail ARN
+    Value: !If [EnableCloudTrailCondition, !GetAtt CloudTrailStack.Outputs.CloudTrailArn, !Ref "AWS::NoValue"]
+    Condition: EnableCloudTrailCondition
+
+  DashboardUrl:
+    Description: CloudWatch Dashboard URL
+    Value: !Sub https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#dashboards:name=${Environment}-lxon-blockchain

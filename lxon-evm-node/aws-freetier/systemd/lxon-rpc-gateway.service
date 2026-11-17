@@ -1,0 +1,37 @@
+[Unit]
+Description=LXON read-only JSON-RPC gateway (allow-list filter in front of Besu)
+Documentation=file:///opt/lxon/README.md
+After=network-online.target docker.service
+Wants=network-online.target
+# Besu publishes 127.0.0.1:8545 from a docker container. If that container is not up yet the
+# gateway still starts and answers 502 for a moment; Restart=always covers the race instead of
+# adding a fragile Requires= on a docker unit we do not own.
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /usr/local/lib/lxon-rpc-gateway.py
+Environment=GWAY_LISTEN_HOST=127.0.0.1
+Environment=GWAY_LISTEN_PORT=9545
+Environment=GWAY_UPSTREAM_HOST=127.0.0.1
+Environment=GWAY_UPSTREAM_PORT=8545
+Environment=GWAY_MAX_CONCURRENT=16
+Restart=always
+RestartSec=3
+
+# The gateway is a network-facing process, so it runs as nobody and cannot write anywhere.
+# DynamicUser is fine: 9545 is an unprivileged port.
+DynamicUser=yes
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictNamespaces=yes
+CapabilityBoundingSet=
+MemoryMax=160M
+TasksMax=128
+
+[Install]
+WantedBy=multi-user.target

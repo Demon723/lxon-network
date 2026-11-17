@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LXON DEX - live pool price</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            margin-left: 30px;
+            font-size: 16px;
+            transition: opacity 0.3s;
+        }
+
+        .nav-links a:hover {
+            opacity: 0.8;
+        }
+
+        .hero {
+            text-align: center;
+            padding: 100px 20px;
+            color: white;
+        }
+
+        .hero h1 {
+            font-size: 64px;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .hero p {
+            font-size: 24px;
+            margin-bottom: 40px;
+            opacity: 0.9;
+        }
+
+        .price-tag {
+            background: white;
+            color: #667eea;
+            padding: 20px 40px;
+            border-radius: 50px;
+            font-size: 36px;
+            font-weight: bold;
+            display: inline-block;
+            margin-bottom: 40px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Live feed line under the price tag. Overridden by price-feed.js once the
+           first snapshot lands; the sizes are small on purpose so it reads as a
+           footnote to the tag, not a second headline. */
+        .hero .hero-note {
+            font-size: 16px;
+            margin-top: -20px;
+            margin-bottom: 36px;
+            opacity: 0.95;
+        }
+
+        .feed-strip {
+            text-align: center;
+            font-size: 14px;
+            opacity: 0.75;
+            margin-top: 24px;
+        }
+
+        .cta-button {
+            background: white;
+            color: #667eea;
+            padding: 20px 60px;
+            border: none;
+            border-radius: 50px;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .features {
+            padding: 80px 40px;
+            background: white;
+        }
+
+        .features h2 {
+            text-align: center;
+            font-size: 48px;
+            color: #333;
+            margin-bottom: 60px;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .feature-card {
+            background: #f8f9fa;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            transition: transform 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+        }
+
+        .feature-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        .feature-card h3 {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .feature-card p {
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .stats {
+            padding: 80px 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .stat-card {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 48px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            font-size: 18px;
+            opacity: 0.9;
+        }
+
+        .how-to-trade {
+            padding: 80px 40px;
+            background: white;
+        }
+
+        .how-to-trade h2 {
+            text-align: center;
+            font-size: 48px;
+            color: #333;
+            margin-bottom: 60px;
+        }
+
+        .steps {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .step {
+            display: flex;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+
+        .step-number {
+            background: #667eea;
+            color: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            margin-right: 30px;
+            flex-shrink: 0;
+        }
+
+        .step-content h3 {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .step-content p {
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .footer {
+            background: #333;
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .footer p {
+            opacity: 0.7;
+        }
+
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 36px;
+            }
+
+            .hero p {
+                font-size: 18px;
+            }
+
+            .price-tag {
+                font-size: 24px;
+                padding: 15px 30px;
+            }
+
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Every contract address this page tells you to import is dead. Kept in place rather than
+         deleted so the false instructions are visible next to the correction, not hidden by it. -->
+    <div style="margin:0;padding:14px 18px;background:#5c1a1a;color:#ffecec;border-bottom:3px solid #b30000;font:14px/1.5 system-ui,sans-serif">
+      <strong>Withdrawn — the addresses below no longer exist.</strong>
+      Chain 724 restarted from an empty volume on 2026-11-03, so <code>0x99801a78…</code> (LXON),
+      <code>0xcB742c31…</code> (WETH), <code>0x272a3ed4…</code> (the pair) and
+      <code>0xd969211d…</code> (the router) all return <strong>0 bytes of code</strong> on
+      <code>https://rpc.lxon.in</code> — measured 2026-11-04, with the positive control that the v4.1
+      bridge on Polygon 137 still reads 19,105 bytes to the same reader. Do not import or approve any of
+      them. Nothing on this page can be traded; the live trading page is
+      <a href="https://www.lxon.in/swap/" style="color:#fff">https://www.lxon.in/swap/</a>, which serves
+      an honest offline notice instead. Redeploy route and the exact new addresses:
+      <code>docs/runbooks/repoint-137-to-rebuilt-724-plan.md</code>.
+    </div>
+    <nav class="navbar">
+        <div class="logo">LXON DEX</div>
+        <div class="nav-links">
+            <a href="#features">Features</a>
+            <a href="#stats">Stats</a>
+            <a href="#how-to-trade">How to Trade</a>
+            <a href="trading-interface.html">Trade Now</a>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <h1>Trade LXON at the pool price</h1>
+        <p>Decentralized Exchange priced by the on-chain LXON/WETH pool</p>
+        <div class="price-tag" data-lxon-eth-per-lxon>loading&hellip;</div>
+        <p class="hero-note">
+            &asymp; <strong data-lxon-usd-per-lxon>&mdash;</strong> per LXON &middot;
+            <span data-lxon-feed-status>connecting&hellip;</span>
+        </p>
+        <a href="trading-interface.html" class="cta-button">Start Trading</a>
+    </section>
+
+    <section class="features" id="features">
+        <h2>Why Trade on LXON DEX?</h2>
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="feature-icon">💰</div>
+                <h3>Pool-Priced</h3>
+                <p>The LXON/WETH pool on chain 724 sets the price — this page reads it live instead of quoting a fixed figure</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🔒</div>
+                <h3>Secure</h3>
+                <p>Non-custodial trading - you always control your funds</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <h3>Fast</h3>
+                <p>Instant trades on the LXON network with low fees</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🌐</div>
+                <h3>Decentralized</h3>
+                <p>No intermediaries, peer-to-peer trading</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">💧</div>
+                <h3>Pool Reserves</h3>
+                <p data-lxon-reserves>reading reserves&hellip;</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🎯</div>
+                <h3>Easy to Use</h3>
+                <p>Simple interface with MetaMask integration</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="stats" id="stats">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" data-lxon-usd-per-lxon>&mdash;</div>
+                <div class="stat-label">Price per LXON (USD)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" data-lxon-eth-per-lxon>&mdash;</div>
+                <div class="stat-label">Price per LXON (ETH)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" data-lxon-market-cap>&mdash;</div>
+                <div class="stat-label">Market Cap</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" data-lxon-reserve-weth>&mdash;</div>
+                <div class="stat-label">WETH Reserve</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" data-lxon-reserve-lxon>&mdash;</div>
+                <div class="stat-label">LXON Reserve</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" data-lxon-supply>&mdash;</div>
+                <div class="stat-label">LXON Supply</div>
+            </div>
+        </div>
+        <p class="feed-strip">
+            Source: <span data-lxon-feed-status>connecting&hellip;</span>
+            &middot; feed updated <span data-lxon-feed-updated>&mdash;</span>
+            &middot; USD requires the explorer feed (see price-feed.js); the ETH figure always comes straight from the pool.
+        </p>
+    </section>
+
+    <section class="how-to-trade" id="how-to-trade">
+        <h2>How to Trade</h2>
+        <div class="steps">
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <h3>Add LXON Network to MetaMask</h3>
+                    <p>RPC URL: https://rpc.lxon.in<br>Chain ID: 724<br>Currency: LXON</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h3>Import LXON Token</h3>
+                    <p><s>Contract: 0x99801a78639975d448eeb2f8a807738dc8df67dc</s> &mdash; <strong>0 bytes of code on chain 724 since the 2026-11-03 restart; do not import</strong><br>Symbol: LXON<br>Decimals: 18</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <h3>Import WETH Token</h3>
+                    <p><s>Contract: 0xcB742c31f0815648E13fF24D8131B89075FF32e2</s> &mdash; <strong>0 bytes of code on chain 724; do not import</strong><br>Symbol: WETH<br>Decimals: 18</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                    <h3>Start Trading</h3>
+                    <p>Connect your wallet and start swapping LXON and WETH on our DEX</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <p>&copy; 2026 LXON DEX. All rights reserved.</p>
+        <p><s>Pair Address: 0x272a3ed4b91112005ade5b4161af1adc856ab3f4</s> &mdash; this pair no longer exists (0 bytes on 724)</p>
+        <p><s>Router Address: 0xd969211d7efb154e86d41a80ff0fd3cc0eb70468</s> &mdash; this router no longer exists (0 bytes on 724)</p>
+        <p>Prices on this page were read from the chain 724 LXON/WETH pool at <code>https://rpc.lxon.in</code>. That pool has no code behind it since the 2026-11-03 restart, so there is no price to read &mdash; the feed shows a stated failure instead of a number.</p>
+    </footer>
+
+    <script src="price-feed.js"></script>
+    <script>
+        // Paint the live figures. The module reads price.json first (same-origin only)
+        // and falls back to eth_call getReserves() on rpc.lxon.in, so an ETH price
+        // shows even when the explorer feed is unreachable.
+        if (window.LxonPriceFeed) {
+            LxonPriceFeed.start().catch(function (err) {
+                document.querySelectorAll("[data-lxon-eth-per-lxon],[data-lxon-usd-per-lxon],[data-lxon-reserves],[data-lxon-market-cap],[data-lxon-supply]")
+                    .forEach(function (n) { n.textContent = "unavailable"; });
+                console.error("LXON price feed unavailable:", err);
+            });
+        }
+    </script>
+</body>
+</html>

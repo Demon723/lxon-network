@@ -1,0 +1,57 @@
+[profile.default]
+src = "contracts"
+out = "out"
+libs = ["lib"]
+remappings = ["@chainlink/contracts/=lib/chainlink/contracts/"]
+solc_version = "0.8.26"
+optimizer = true
+optimizer_runs = 200
+# The LXON chain (chainId 724) now runs on Hyperledger Besu QBFT with the Cancun EVM at
+# block 0 -- see lxon-evm-node/besu/genesis.qbft.json. PUSH0, MCOPY, TSTORE and TLOAD were
+# each executed on-chain and verified. Do not go back to evm_version < cancun: the previous
+# geth Clique node could only ever reach London, because geth gates Shanghai/Cancun rules
+# behind the merge and its Clique engine panics on Cancun blob fields.
+# via_ir is required: without it LXONStakingEnhanced hits "Stack too deep" (23 local vars
+# across the packed StakePosition struct paths).
+evm_version = "cancun"
+via_ir = true
+
+# Legacy deploy scripts and tests importing bridge/PQC contracts (LxonBridge, MLDSAVerifier,
+# AttestationVerifier, HybridSignatureVerifier, ...) that are not present anywhere in this
+# repo and were never tracked here -- they belong to earlier chain iterations. Kept for
+# reference, excluded from the build so the rest of the project compiles.
+skip = [
+    "script/ConfigureHybridMode.s.sol",
+    "script/DeployAllLXON.s.sol",
+    "script/DeployAttestationVerifier.s.sol",
+    "script/DeployAttestationVerifierV2.s.sol",
+    "script/DeployBridgeWithTimelock.s.sol",
+    "script/DeployCompleteLXON.s.sol",
+    "script/DeployLxonBridgeMultiSig.s.sol",
+    "script/DeployLxonBridgeMultiSig_EthereumMainnet.s.sol",
+    "script/DeployLxonBridgeMultiSig_Holesky.s.sol",
+    "script/DeployLxonBridgeMultiSig_Sepolia.s.sol",
+    "script/DeployLxonBridgeV2.s.sol",
+    "script/DeployMLDSAKeyStorage.s.sol",
+    "script/DeployMLDSAVerifier.s.sol",
+    "script/DeployPQCContracts.s.sol",
+    "script/DeployPairAndRouter.s.sol",
+    "script/RegisterMLDSAKeys.s.sol",
+    "script/RegisterMLDSAKeysFromFile.s.sol",
+    "test/BridgeFunctionality.t.sol",
+    "test/LxonBridge.t.sol",
+    "test/PQCMigration.t.sol",
+    "test/TestLxonBridgeV2.t.sol",
+    "test/integration/SecondaryFlow.t.sol",
+    "test/wrapper/PQWrappedAssetVaultSecondary.t.sol",
+    # Calls ValidatorKeyRegistry.setSecondaryScheme, which the registry in this project does
+    # not declare. Same API mismatch class as above.
+    "test/governance/ValidatorKeyRegistrySecondary.t.sol",
+]
+
+[rpc_endpoints]
+# Since 2026-10-20 the node's RPC is loopback-only on the instance (no security-group rule
+# for 8545/8546) — qbft_proposeValidatorVote on an n=1/f=0 QBFT chain is a chain takeover,
+# so it is not exposed. Open a tunnel before any forge script/cast call:
+#   ssh -i ~/.ssh/lxon-eu-north-1.pem -N -L 8545:127.0.0.1:8545 ubuntu@13.62.37.246 &
+lxon = "http://127.0.0.1:8545"

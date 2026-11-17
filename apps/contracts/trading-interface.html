@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LXON DEX - $2/LXON Trading</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .price-tag {
+            text-align: center;
+            font-size: 24px;
+            color: #10b981;
+            font-weight: bold;
+            margin-bottom: 30px;
+        }
+
+        .connect-btn {
+            width: 100%;
+            padding: 15px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: background 0.3s;
+        }
+
+        .connect-btn:hover {
+            background: #5568d3;
+        }
+
+        .connect-btn.connected {
+            background: #10b981;
+        }
+
+        .swap-box {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .token-input {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .token-input input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        .token-select {
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+        }
+
+        .swap-icon {
+            text-align: center;
+            margin: -10px 0;
+            color: #667eea;
+            font-size: 20px;
+        }
+
+        .swap-btn {
+            width: 100%;
+            padding: 15px;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .swap-btn:hover {
+            background: #059669;
+        }
+
+        .swap-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .info-box {
+            background: #e0e7ff;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .info-box h3 {
+            color: #3730a3;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .info-box p {
+            color: #4338ca;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+
+        .status {
+            text-align: center;
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .status.info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>LXON DEX</h1>
+        <div class="price-tag">$2/LXON</div>
+
+        <button class="connect-btn" id="connectBtn">Connect Wallet</button>
+
+        <div class="swap-box">
+            <div class="token-input">
+                <input type="number" id="amountIn" placeholder="0.0">
+                <select class="token-select" id="tokenIn">
+                    <option value="LXON">LXON</option>
+                    <option value="WETH">WETH</option>
+                </select>
+            </div>
+
+            <div class="swap-icon">↓</div>
+
+            <div class="token-input">
+                <input type="number" id="amountOut" placeholder="0.0" readonly>
+                <select class="token-select" id="tokenOut">
+                    <option value="WETH">WETH</option>
+                    <option value="LXON">LXON</option>
+                </select>
+            </div>
+        </div>
+
+        <button class="swap-btn" id="swapBtn" disabled>Swap</button>
+
+        <div class="info-box">
+            <h3>Pair Information</h3>
+            <p><strong>Pair Address:</strong> 0xd8D328e3a7f35CB9B6dB5D0bB598c01caD658360</p>
+            <p><strong>LXON:</strong> 0xc0177883C0c662870855660495C697385FE040f5</p>
+            <p><strong>WETH:</strong> 0x94DaB83AFE9b77c1ccf6c4963e530F22c928b92c</p>
+            <p><strong>Price:</strong> $1.995/LXON</p>
+        </div>
+
+        <div class="status" id="status"></div>
+    </div>
+
+    <script>
+        const LXON_ADDRESS = "0xc0177883C0c662870855660495C697385FE040f5";
+        const WETH_ADDRESS = "0x94DaB83AFE9b77c1ccf6c4963e530F22c928b92c";
+        const PAIR_ADDRESS = "0xd8D328e3a7f35CB9B6dB5D0bB598c01caD658360";
+        const ROUTER_ADDRESS = "0x643a62a5472Ba3fA3eAbc834E3058eF2aBD07602";
+        const LXON_RPC = "https://rpc.lxon.in";
+        const CHAIN_ID = 724;
+
+        let web3;
+        let account;
+        let provider;
+
+        const connectBtn = document.getElementById('connectBtn');
+        const swapBtn = document.getElementById('swapBtn');
+        const amountIn = document.getElementById('amountIn');
+        const amountOut = document.getElementById('amountOut');
+        const tokenIn = document.getElementById('tokenIn');
+        const tokenOut = document.getElementById('tokenOut');
+        const status = document.getElementById('status');
+
+        connectBtn.addEventListener('click', connectWallet);
+        swapBtn.addEventListener('click', swap);
+        amountIn.addEventListener('input', calculateOutput);
+        tokenIn.addEventListener('change', calculateOutput);
+        tokenOut.addEventListener('change', calculateOutput);
+
+        async function connectWallet() {
+            if (typeof window.ethereum !== 'undefined') {
+                try {
+                    await window.ethereum.request({
+                        method: 'wallet_addEthereumChain',
+                        params: [{
+                            chainId: '0x2d4',
+                            chainName: 'LXON',
+                            nativeCurrency: {
+                                name: 'LXON',
+                                symbol: 'LXON',
+                                decimals: 18
+                            },
+                            rpcUrls: [LXON_RPC],
+                            blockExplorerUrls: null
+                        }]
+                    });
+
+                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    account = accounts[0];
+                    provider = new ethers.providers.JsonRpcProvider(LXON_RPC);
+                    web3 = new ethers.providers.Web3Provider(window.ethereum);
+
+                    connectBtn.textContent = account.substring(0, 6) + '...' + account.substring(38);
+                    connectBtn.classList.add('connected');
+                    swapBtn.disabled = false;
+
+                    showStatus('Wallet connected successfully!', 'success');
+                } catch (error) {
+                    showStatus('Failed to connect wallet: ' + error.message, 'error');
+                }
+            } else {
+                showStatus('Please install MetaMask', 'error');
+            }
+        }
+
+        function calculateOutput() {
+            const amount = parseFloat(amountIn.value);
+            if (isNaN(amount) || amount === 0) {
+                amountOut.value = '';
+                return;
+            }
+
+            const price = 1.33; // 1.33 WETH per LXON
+            const isLxonToWeth = tokenIn.value === 'LXON' && tokenOut.value === 'WETH';
+            const isWethToLxon = tokenIn.value === 'WETH' && tokenOut.value === 'LXON';
+
+            if (isLxonToWeth) {
+                amountOut.value = (amount * price).toFixed(6);
+            } else if (isWethToLxon) {
+                amountOut.value = (amount / price).toFixed(6);
+            } else {
+                amountOut.value = amount.toFixed(6);
+            }
+        }
+
+        async function swap() {
+            if (!account) {
+                showStatus('Please connect wallet first', 'error');
+                return;
+            }
+
+            const amount = parseFloat(amountIn.value);
+            if (isNaN(amount) || amount === 0) {
+                showStatus('Please enter an amount', 'error');
+                return;
+            }
+
+            showStatus('Swap functionality requires direct contract interaction. Please use Etherscan or contract directly.', 'info');
+        }
+
+        function showStatus(message, type) {
+            status.textContent = message;
+            status.className = 'status ' + type;
+            setTimeout(() => {
+                status.textContent = '';
+                status.className = 'status';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

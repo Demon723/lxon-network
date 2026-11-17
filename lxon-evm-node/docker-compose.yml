@@ -1,0 +1,237 @@
+name: lxon-evm
+
+# LXON chain (chainId 724) — Hyperledger Besu QBFT sealer (also the archive node) + Blockscout.
+#
+# First run:
+#   1. cp .env.example .env          (optional — defaults work out of the box)
+#   2. docker compose up -d
+#   3. Explorer: http://localhost:3000 | RPC: http://localhost:8545 (chainId 724)
+#
+# The genesis hash is unchanged from the original (only the ambiguous "ethash"
+# config key was removed, which is not part of the block hash).
+
+x-logging: &lxon-logging
+  driver: json-file
+  options:
+    max-size: "100m"
+    max-file: "3"
+
+services:
+  # ---------------------------------------------------------------------------
+  # Sealer: the only block producer (QBFT PoA, 1 signer, 5s period, Cancun EVM).
+  # ---------------------------------------------------------------------------
+  # Besu runs as uid 1000, but /var/lib/besu is absent from the image, so the named volume
+  # is created root-owned and Besu dies with "Failed to create data directory: /data".
+  besu-perms:
+    image: alpine:3.20
+    container_name: lxon-besu-perms
+    restart: "no"
+    user: "0:0"
+    volumes:
+      - besu-data:/data
+    entrypoint: ["/bin/sh", "-c", "chown -R 1000:1000 /data && chmod 700 /data"]
+
+  besu-sealer:
+    image: hyperledger/besu:26.10.0
+    container_name: lxon-besu-sealer
+    restart: unless-stopped
+    stop_grace_period: 3m
+    depends_on:
+      besu-perms:
+        condition: service_completed_successfully
+    user: "1000:1000"
+    logging: *lxon-logging
+    volumes:
+      - ./besu/genesis.qbft.json:/etc/besu/genesis.json:ro
+      - ./besu/entrypoint-besu.sh:/scripts/entrypoint-besu.sh:ro
+      - ./besu/privatekey.txt:/key/key.priv:ro
+      - besu-data:/var/lib/besu
+    ports:
+      # Loopback-only, matching the AWS stack: same Besu flags, same API namespace set.
+      - "127.0.0.1:8545:8545"    # JSON-RPC HTTP
+      - "127.0.0.1:8546:8546"    # WebSocket
+      - "30303:30303"  # devp2p TCP
+    entrypoint: ["/bin/sh", "/scripts/entrypoint-besu.sh"]
+    healthcheck:
+      # No curl/wget/python in the Besu image; probe the socket with bash /dev/tcp.
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8545'"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 90s
+
+  # Besu runs with --sync-mode=FULL and no pruning, so it is also the archive
+  # node Blockscout reads from (variant=besu, debug+trace enabled).
+  #
+  # Why not geth: geth gates Shanghai/Cancun EVM rules behind the merge
+  # (params/config.go Rules(): isMerge && IsShanghai), and its Clique engine
+  # panics on Cancun blob fields, so a self-sealing geth Clique chain can never
+  # exceed the London EVM -- no PUSH0, and OpenZeppelin 5.7 (mcopy) cannot even
+  # compile. See aws/README.md for the full write-up.
+
+  # ---------------------------------------------------------------------------
+  # Blockscout: postgres + redis + backend (indexer/API) + frontend.
+  # Backend reads from the Besu archive node (variant=besu). BLOCK_TRANSFORMER is
+  # "base", not "clique": Blockscout 7.0.2 accepts only base|clique, and the clique
+  # transformer would misparse QBFT's RLP-encoded extraData. QBFT validators come from
+  # qbft_getValidatorsByBlockNumber instead.
+  # ---------------------------------------------------------------------------
+  blockscout-db:
+    image: postgres:16-alpine
+    container_name: lxon-blockscout-db
+    restart: unless-stopped
+    logging: *lxon-logging
+    environment:
+      POSTGRES_USER: blockscout
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+      POSTGRES_DB: blockscout
+    volumes:
+      - bs-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U blockscout -d blockscout"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  blockscout-redis:
+    image: redis:7-alpine
+    container_name: lxon-blockscout-redis
+    restart: unless-stopped
+    logging: *lxon-logging
+    command: ["redis-server", "--save", "300 10", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  blockscout-backend:
+    image: blockscout/blockscout:latest
+    container_name: lxon-blockscout-backend
+    restart: unless-stopped
+    stop_grace_period: 1m
+    logging: *lxon-logging
+    # Image default CMD is a bare /bin/sh that exits instantly; must run
+    # migrations then start explicitly (official Blockscout compose pattern).
+    command: sh -c "bin/blockscout eval \"Elixir.Explorer.ReleaseTasks.create_and_migrate()\" && bin/blockscout start"
+    depends_on:
+      besu-sealer:
+        condition: service_healthy
+      blockscout-db:
+        condition: service_healthy
+      blockscout-redis:
+        condition: service_healthy
+      sc-verifier:
+        condition: service_started
+    environment:
+      PORT: "4000"
+      NETWORK: "LXON"
+      SUBNETWORK: "LXON Mainnet"
+      CHAIN_ID: "724"
+      COIN: "LXON"
+      COIN_NAME: "LXON"
+      ETHEREUM_JSONRPC_VARIANT: ${RPC_VARIANT:-besu}
+      ETHEREUM_JSONRPC_TRANSPORT: "http"
+      ETHEREUM_JSONRPC_HTTP_URL: ${RPC_HTTP_URL:-http://besu-sealer:8545}
+      ETHEREUM_JSONRPC_TRACE_URL: ${RPC_TRACE_URL:-http://besu-sealer:8545}
+      ETHEREUM_JSONRPC_WS_URL: ${RPC_WS_URL:-ws://besu-sealer:8546}
+      BLOCK_TRANSFORMER: "base"
+      DATABASE_URL: postgresql://blockscout:${DB_PASSWORD:?set DB_PASSWORD in .env}@blockscout-db:5432/blockscout
+      ECTO_SSL_MODE: "disable"
+      ECTO_USE_SSL: "false"
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE:?set SECRET_KEY_BASE in .env}   # was a hardcoded hex default
+      POOL_SIZE: "50"
+      POOL_SIZE_API: "10"
+      FIRST_BLOCK: "0"
+      DISABLE_MARKET: "true"
+      SHOW_PRICE_CHART: "false"
+      SHOW_TXS_CHART: "true"
+      # Source verification via the sc-verifier microservice below; keeps the local
+      # stack able to run `forge verify-contract --verifier blockscout` exactly like
+      # the AWS one (see aws/docker-compose.aws.yml).
+      MICROSERVICE_SC_VERIFIER_ENABLED: "true"
+      MICROSERVICE_SC_VERIFIER_URL: "http://sc-verifier:8050/"
+      MICROSERVICE_SC_VERIFIER_TYPE: "sc_verifier"
+      MICROSERVICE_VISUALIZE_SOL2UML_ENABLED: "false"
+      MICROSERVICE_SIG_PROVIDER_ENABLED: "false"
+      ACCOUNT_ENABLED: "false"
+      REDIS_URL: "redis://blockscout-redis:6379"
+      API_V2_ENABLED: "true"
+      JSON_RPC: "http://localhost:8545"
+    ports:
+      - "127.0.0.1:4000:4000"
+
+  # Stateless source-verification microservice (no DB of its own). Publishes solc
+  # binaries for both amd64 and arm64, so it runs natively under OrbStack.
+  # The verifier image runs as uid 1001 ("app") but a fresh named volume is
+  # root-owned, so solc downloads fail with "fetching evm compiler: Permission
+  # denied". One-shot chown, same pattern as besu-perms.
+  sc-verifier-perms:
+    image: alpine:3.20
+    container_name: lxon-sc-verifier-perms
+    restart: "no"
+    user: "0:0"
+    volumes:
+      - sc-compilers:/data
+    entrypoint: ["/bin/sh", "-c", "chown -R 1001:1001 /data && chmod 755 /data && echo 'sc-compilers ownership set for uid 1001'"]
+
+  sc-verifier:
+    image: ghcr.io/blockscout/smart-contract-verifier:latest
+    container_name: lxon-sc-verifier
+    restart: unless-stopped
+    logging: *lxon-logging
+    depends_on:
+      sc-verifier-perms:
+        condition: service_completed_successfully
+    environment:
+      SMART_CONTRACT_VERIFIER__SERVER__HTTP__ENABLED: "true"
+      SMART_CONTRACT_VERIFIER__SERVER__HTTP__ADDR: "0.0.0.0:8050"
+      SMART_CONTRACT_VERIFIER__SERVER__HTTP__MAX_BODY_SIZE: "2097152"
+      # `native` runs the official solc binaries inside this container. The
+      # alternative `docker` mode needs the host's /var/run/docker.sock mounted,
+      # which is root on the host — not worth it here (see aws/docker-compose.aws.yml).
+      SMART_CONTRACT_VERIFIER__COMPILERS__EXECUTION__TYPE: "native"
+      SMART_CONTRACT_VERIFIER__SOLIDITY__ENABLED: "true"
+      SMART_CONTRACT_VERIFIER__SOLIDITY__COMPILERS_DIR: "/tmp/solidity-compilers"
+      # solc binaries must match the container's own arch, not the host's: under
+      # OrbStack on Apple Silicon that is linux-arm64. Override for amd64 hosts.
+      SMART_CONTRACT_VERIFIER__SOLIDITY__FETCHER__LIST__LIST_URL: "https://binaries.soliditylang.org/${SC_VERIFIER_SOLC_PLATFORM:-linux-arm64}/list.json"
+      SMART_CONTRACT_VERIFIER__VYPER__ENABLED: "false"
+      SMART_CONTRACT_VERIFIER__SOURCIFY__ENABLED: "false"
+      SMART_CONTRACT_VERIFIER__METRICS__ENABLED: "false"
+      RUST_LOG: "info"
+    volumes:
+      - sc-compilers:/tmp/solidity-compilers
+
+  blockscout-frontend:
+    image: ghcr.io/blockscout/frontend:latest
+    container_name: lxon-blockscout-frontend
+    restart: unless-stopped
+    logging: *lxon-logging
+    depends_on:
+      blockscout-backend:
+        condition: service_started
+    environment:
+      NEXT_PUBLIC_API_HOST: "localhost"
+      NEXT_PUBLIC_API_PORT: "4000"
+      NEXT_PUBLIC_API_PROTOCOL: "http"
+      NEXT_PUBLIC_API_WEBSOCKET_PROTOCOL: "ws"
+      NEXT_PUBLIC_APP_HOST: "localhost"
+      NEXT_PUBLIC_APP_PORT: "3000"
+      NEXT_PUBLIC_APP_PROTOCOL: "http"
+      NEXT_PUBLIC_NETWORK_NAME: "LXON Mainnet"
+      NEXT_PUBLIC_NETWORK_SHORT_NAME: "LXON"
+      NEXT_PUBLIC_NETWORK_ID: "724"
+      NEXT_PUBLIC_NETWORK_CURRENCY_NAME: "LXON"
+      NEXT_PUBLIC_NETWORK_CURRENCY_SYMBOL: "LXON"
+      NEXT_PUBLIC_NETWORK_CURRENCY_DECIMALS: "18"
+      NEXT_PUBLIC_NETWORK_RPC_URL: "http://localhost:8545"
+      NEXT_PUBLIC_HOMEPAGE_CHARTS: "['daily_txs']"
+      NEXT_PUBLIC_AD_BANNER_PROVIDER: "none"
+    ports:
+      - "3000:3000"
+
+volumes:
+  besu-data:
+  bs-db-data:
+  sc-compilers:

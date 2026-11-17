@@ -1,0 +1,9 @@
+{
+  "targetContract": "0xDa55F55201Ccd32F107D33e6b25c698083CBF37e",
+  "upkeepName": "LXON Peg Defender",
+  "gasLimit": 500000,
+  "checkData": "0x",
+  "fundWith": "LINK",
+  "trigger": "Custom logic"
+}
+echo "Keeper and Chainlink config created"

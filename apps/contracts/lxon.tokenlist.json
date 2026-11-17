@@ -1,0 +1,151 @@
+/**
+ * @title LXON Token List for Uniswap
+ * @notice This token list contains official LXON ecosystem tokens for use with Uniswap Interface
+ * @dev Follows the Uniswap Token List Schema v1.0.0
+ * @custom:chain-id 724 (LXON Mainnet)
+ * @custom:version 1.0.0
+ * @custom:timestamp 2026-10-01T00:00:00.000Z
+ * 
+ * TOKEN LIST STRUCTURE:
+ * - name: Human-readable list name
+ * - timestamp: ISO 8601 timestamp of last update
+ * - version: Semantic version following major.minor.patch
+ * - tokens: Array of token objects with the following fields:
+ *   - chainId: Chain ID where the token is deployed
+ *   - address: Contract address of the token
+ *   - symbol: Token symbol (e.g., LXON)
+ *   - name: Full token name
+ *   - decimals: Number of decimals (usually 18 for ERC20)
+ *   - logoURI: URI to token logo (SVG or PNG)
+ *   - extensions: Optional metadata (e.g., bridgeInfo, coingeckoId)
+ * 
+ * USAGE:
+ * 1. Deploy this JSON file to a public URL (e.g., IPFS, GitHub Pages)
+ * 2. Add the URL to Uniswap Interface settings
+ * 3. Tokens will appear in the token list
+ * 
+ * MAINTENANCE:
+ * - Update timestamp when adding/removing tokens
+ * - Increment version when making changes
+ * - Ensure all token addresses are verified
+ * - Use high-quality logo images (minimum 256x256px)
+ * 
+ * SECURITY:
+ * - Only include verified token addresses
+ * - Perform thorough audits before listing tokens
+ * - Monitor for suspicious token activity
+ * - Remove compromised tokens immediately
+ * 
+ * DO NOT PUBLISH (2026-10-22) — every address in this list is codeless on the chain it claims.
+ *
+ * All four tokens declare "chainId": 724, and all four addresses return 0 bytes of code there
+ * (checked with eth_getCode on https://rpc.lxon.in, 2026-10-22; positive controls returned code).
+ * They are Hardhat/Anvil local-VM addresses, not deployments:
+ *   0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0  "LXON"   -> 0 bytes on 724 and on 137 (172.04 POL, nonce 0)
+ *   0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9  "WLXON"  -> 0 bytes on 724 and on 137 (3.50 POL, nonce 0)
+ *   0x5fbdb2315678afecb367f032d93f642f64180aa3  "WETH"   -> 0 bytes on 724 and on 137 (177.86 POL, nonce 0)
+ *   0xe7f1725e7734ce288f8367e1bb143e90bb3f0512  "EURC"   -> 0 bytes on 724 and on 137 (29.67 POL, nonce 0)
+ * All four are Hardhat/Anvil account #N from the default mnemonic, i.e. keys that are public. They are
+ * EOAs holding POL that anyone could spend, not contracts and not LXON wallets.
+ *
+ * Also, before any of this is republished: this file starts with the comment you are reading, so it is
+ * NOT valid JSON and `npx @uniswap/token-lists validate` cannot pass it. The four logoURI values share
+ * one CID (QmTcHk5YzQ5nKQeFz5YzQ5nKQeFz5YzQ5nKQeFz5YzQ5), which base58-decodes to 33 bytes starting 0161
+ * instead of a real CIDv0's 46 chars / 34 bytes / 1220-prefixed sha2-256 multihash — it names no object.
+ * apps/contracts/logos/ does not exist, so deploy-tokenlist.sh could not have uploaded anything.
+ *
+ * The tokens a corrected 724 list would actually point at — SUPERSEDED 2026-11-04, do not use it:
+ *   Chain 724 restarted from an empty volume on 2026-11-03 (same genesis, block 0 0x6c931dff...), and
+ *   all three addresses below now return 0 bytes of code on https://rpc.lxon.in — measured with the
+ *   positive control that the v4.1 bridge on Polygon 137 still reads 19,105 bytes to the same reader.
+ *     LXON   0x99801A78639975D448EEb2f8a807738DC8Df67Dc   0 bytes on 724  (was: totalSupply 1e26)
+ *     XON    0xe801e058b4c9f77dd60980a80f7607a50afe1799   0 bytes on 724  (was: totalSupply 1e26)
+ *     wLXON  0xC0CF6B0E6C5a0705F319BA5c629a6Bc7E82FEf00   0 bytes on 724
+ *   So there is nothing to list on 724 today, and the numbers above are history, not a supply ruling.
+ *   A rebuilt list is a step AFTER the redeploy, not before it: the new addresses are decided by
+ *   (sender, nonce) and are known only once those deploys mine — see
+ *   docs/runbooks/repoint-137-to-rebuilt-724-plan.md, Phases 2-3. Do not pre-fill them here.
+ *
+ * END DO NOT PUBLISH
+ *
+ * REFERENCES:
+ * - Uniswap Token List Schema: https://docs.uniswap.org/protocol/reference/interfaces/token-list
+ * - EIP-721: https://eips.ethereum.org/EIPS/eip-721
+ * - ERC-20: https://eips.ethereum.org/EIPS/eip-20
+ */
+{
+  "name": "LXON Official Token List",
+  "timestamp": "2026-10-01T00:00:00.000Z",
+  "version": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "tags": {
+    "stablecoin": {
+      "name": "Stablecoin",
+      "description": "Tokens pegged to a stable value"
+    },
+    "utility": {
+      "name": "Utility",
+      "description": "Tokens with utility functions"
+    },
+    "governance": {
+      "name": "Governance",
+      "description": "Governance tokens for protocol voting"
+    }
+  },
+  "logoURI": "ipfs://QmTcHk5YzQ5nKQeFz5YzQ5nKQeFz5YzQ5nKQeFz5YzQ5/logo.png",
+  "keywords": ["lxon", "settlement", "space", "defi"],
+  "tokens": [
+    {
+      "chainId": 724,
+      "address": "0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0",
+      "symbol": "LXON",
+      "name": "LXON Settlement Asset",
+      "decimals": 18,
+      "logoURI": "ipfs://QmTcHk5YzQ5nKQeFz5YzQ5nKQeFz5YzQ5nKQeFz5YzQ5/lxon.png",
+      "tags": ["utility", "governance"],
+      "extensions": {
+        "coingeckoId": "lxon",
+        "bridgeInfo": {
+          "originChainId": 1,
+          "originAddress": "0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0"
+        }
+      }
+    },
+    {
+      "chainId": 724,
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "symbol": "WLXON",
+      "name": "LXON-ETH LP Token",
+      "decimals": 18,
+      "logoURI": "ipfs://QmTcHk5YzQ5nKQeFz5YzQ5nKQeFz5YzQ5nKQeFz5YzQ5/wlxon.png",
+      "tags": ["utility"],
+      "extensions": {
+        "coingeckoId": "lxon-eth-lp"
+      }
+    },
+    {
+      "chainId": 724,
+      "address": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+      "symbol": "WETH",
+      "name": "Wrapped Ether",
+      "decimals": 18,
+      "logoURI": "ipfs://QmTcHk5YzQ5nKQeFz5YzQ5nKQeFz5YzQ5nKQeFz5YzQ5/weth.png",
+      "tags": ["utility"]
+    },
+    {
+      "chainId": 724,
+      "address": "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512",
+      "symbol": "EURC",
+      "name": "Euro Coin",
+      "decimals": 6,
+      "logoURI": "ipfs://QmTcHk5YzQ5nKQeFz5YzQ5nKQeFz5YzQ5nKQeFz5YzQ5/eurc.png",
+      "tags": ["stablecoin"],
+      "extensions": {
+        "coingeckoId": "euro-coin"
+      }
+    }
+  ]
+}

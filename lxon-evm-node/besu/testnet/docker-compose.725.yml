@@ -1,0 +1,171 @@
+name: lxon-testnet-725
+
+# Chain 725: four QBFT validators, 3 s blocks, epochlength 30. Disposable.
+# Never run this with lxon-evm-node/docker-compose.yml (chain 724 mirror) up at the
+# same time -- see README.md, and Task 14 asserts it.
+#
+#   orbctl start
+#   docker compose -f docker-compose.725.yml up -d
+#   curl -s http://127.0.0.1:8645 -H 'content-type: application/json' \
+#     -d '{"jsonrpc":"2.0","id":1,"method":"eth_blockNumber","params":[]}'
+#   docker compose -f docker-compose.725.yml down -v
+
+x-testbed-node: &testbed-node
+  image: hyperledger/besu:26.10.0
+  restart: unless-stopped
+  user: "1000:1000"
+  stop_grace_period: 60s
+  logging:
+    driver: json-file
+    options: { max-size: "20m", max-file: "2" }
+  # The hard ceiling. JAVA_OPTS only caps the heap; this caps the whole container, off-heap
+  # included, which is what matters with five Besu JVMs on a box with ~4 GiB reclaimable.
+  mem_limit: 512m
+  memswap_limit: 512m
+  cpus: "0.75"
+  entrypoint: ["/bin/sh", "/scripts/entrypoint-testnet-node.sh"]
+  environment:
+    JAVA_OPTS: "-Xmx320m -Xms128m -XX:+UseSerialGC -XX:MaxRAM=480m"
+    BESU_RPC_API: "ETH,NET,WEB3,DEBUG,TXPOOL,QBFT,ADMIN,TRACE"
+    BESU_RPC_HOST_ALLOWLIST: "localhost,127.0.0.1,725-node-1,725-node-2,725-node-3,725-node-4"
+
+services:
+  perms:
+    image: alpine:3.20
+    container_name: lxon-725-perms
+    restart: "no"
+    user: "0:0"
+    volumes:
+      - ../testnet:/mnt
+    entrypoint: ["/bin/sh", "-c", "mkdir -p /mnt/725/node-1 /mnt/725/node-2 /mnt/725/node-3 /mnt/725/node-4 /mnt/725/node-5 && chown -R 1000:1000 /mnt/725 && chmod 700 /mnt/725/node-*"]
+
+  725-node-1:
+    <<: *testbed-node
+    container_name: lxon-725-node-1
+    depends_on: { perms: { condition: service_completed_successfully } }
+    volumes:
+      - ../testnet/725/genesis.json:/etc/besu/genesis.json:ro
+      - ../testnet/entrypoint-testnet-node.sh:/scripts/entrypoint-testnet-node.sh:ro
+      - ../testnet/keys/node-1.hex:/key/node.key:ro
+      - ../testnet/725/node-1:/var/lib/besu
+    environment:
+      JAVA_OPTS: "-Xmx320m -Xms128m -XX:+UseSerialGC -XX:MaxRAM=480m"
+      BESU_NODE_NAME: "725-node-1"
+      NODE_KEY: "/key/node.key"
+      BESU_BOOTNODES: ""
+      BESU_IS_BOOTNODE: "true"
+      BESU_RPC_API: "ETH,NET,WEB3,DEBUG,TXPOOL,QBFT,ADMIN,TRACE"
+      BESU_RPC_HOST_ALLOWLIST: "localhost,127.0.0.1,725-node-1,725-node-2,725-node-3,725-node-4"
+    ports:
+      - "127.0.0.1:8645:8545"
+    # Pinned address: capture-enode.sh puts this IP into the bootnode URL, because Besu
+    # rejects a DNS name there ("Invalid ip address"). A dynamic address would still work
+    # for one run, but enode-1.txt is consumed later by Task 3 and Task 5 after a teardown,
+    # and a stale IP there fails as "the bootnode is unreachable" -- a false consensus
+    # failure. Same reason the subnet below is fixed rather than left to Docker.
+    networks:
+      default:
+        ipv4_address: 172.28.97.2
+    healthcheck:
+      # The Besu image has no curl/wget/python; probe the socket with bash /dev/tcp.
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8545'"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 60s
+
+  725-node-2:
+    <<: *testbed-node
+    container_name: lxon-725-node-2
+    depends_on: { perms: { condition: service_completed_successfully } }
+    volumes:
+      - ../testnet/725/genesis.json:/etc/besu/genesis.json:ro
+      - ../testnet/entrypoint-testnet-node.sh:/scripts/entrypoint-testnet-node.sh:ro
+      - ../testnet/keys/node-2.hex:/key/node.key:ro
+      - ../testnet/725/node-2:/var/lib/besu
+    environment:
+      JAVA_OPTS: "-Xmx320m -Xms128m -XX:+UseSerialGC -XX:MaxRAM=480m"
+      BESU_NODE_NAME: "725-node-2"
+      NODE_KEY: "/key/node.key"
+      BESU_BOOTNODES: "${BOOTNODE_1:-}"
+      BESU_RPC_API: "ETH,NET,WEB3,DEBUG,TXPOOL,QBFT,ADMIN,TRACE"
+      BESU_RPC_HOST_ALLOWLIST: "localhost,127.0.0.1,725-node-1,725-node-2,725-node-3,725-node-4"
+    ports:
+      - "127.0.0.1:8646:8545"
+
+  725-node-3:
+    <<: *testbed-node
+    container_name: lxon-725-node-3
+    depends_on: { perms: { condition: service_completed_successfully } }
+    volumes:
+      - ../testnet/725/genesis.json:/etc/besu/genesis.json:ro
+      - ../testnet/entrypoint-testnet-node.sh:/scripts/entrypoint-testnet-node.sh:ro
+      - ../testnet/keys/node-3.hex:/key/node.key:ro
+      - ../testnet/725/node-3:/var/lib/besu
+    environment:
+      JAVA_OPTS: "-Xmx320m -Xms128m -XX:+UseSerialGC -XX:MaxRAM=480m"
+      BESU_NODE_NAME: "725-node-3"
+      NODE_KEY: "/key/node.key"
+      BESU_BOOTNODES: "${BOOTNODE_1:-}"
+      BESU_RPC_API: "ETH,NET,WEB3,DEBUG,TXPOOL,QBFT,ADMIN,TRACE"
+      BESU_RPC_HOST_ALLOWLIST: "localhost,127.0.0.1,725-node-1,725-node-2,725-node-3,725-node-4"
+    ports:
+      - "127.0.0.1:8647:8545"
+
+  725-node-4:
+    <<: *testbed-node
+    container_name: lxon-725-node-4
+    depends_on: { perms: { condition: service_completed_successfully } }
+    volumes:
+      - ../testnet/725/genesis.json:/etc/besu/genesis.json:ro
+      - ../testnet/entrypoint-testnet-node.sh:/scripts/entrypoint-testnet-node.sh:ro
+      - ../testnet/keys/node-4.hex:/key/node.key:ro
+      - ../testnet/725/node-4:/var/lib/besu
+    environment:
+      JAVA_OPTS: "-Xmx320m -Xms128m -XX:+UseSerialGC -XX:MaxRAM=480m"
+      BESU_NODE_NAME: "725-node-4"
+      NODE_KEY: "/key/node.key"
+      BESU_BOOTNODES: "${BOOTNODE_1:-}"
+      BESU_RPC_API: "ETH,NET,WEB3,DEBUG,TXPOOL,QBFT,ADMIN,TRACE"
+      BESU_RPC_HOST_ALLOWLIST: "localhost,127.0.0.1,725-node-1,725-node-2,725-node-3,725-node-4"
+    ports:
+      - "127.0.0.1:8648:8545"
+
+  # Transient fifth validator: exists only for Task 3 step 3, is started with
+  # `up -d --no-deps 725-node-5` and removed again in the same step. It is a compose
+  # service rather than a hand-rolled `docker run` because the network, the data-dir
+  # ownership and the bootnode URL all have to match what the other four already use;
+  # a `docker run` on the wrong bridge network starts fine, seals nothing, and the
+  # 90-second wait then reports "node 5 never appeared" — a false consensus failure.
+  # The profile keeps it out of a plain `docker compose up -d`: this is a 4-validator
+  # chain at genesis and `peers=3` is the gate, so node 5 must not start by accident.
+  725-node-5:
+    <<: *testbed-node
+    profiles: ["vote-in"]
+    container_name: lxon-725-node-5
+    depends_on: { perms: { condition: service_completed_successfully } }
+    volumes:
+      - ../testnet/725/genesis.json:/etc/besu/genesis.json:ro
+      - ../testnet/entrypoint-testnet-node.sh:/scripts/entrypoint-testnet-node.sh:ro
+      - ../testnet/keys/node-5.hex:/key/node.key:ro
+      - ../testnet/725/node-5:/var/lib/besu
+    environment:
+      JAVA_OPTS: "-Xmx320m -Xms128m -XX:+UseSerialGC -XX:MaxRAM=480m"
+      BESU_NODE_NAME: "725-node-5"
+      NODE_KEY: "/key/node.key"
+      BESU_BOOTNODES: "${BOOTNODE_1:-}"
+      BESU_RPC_API: "ETH,NET,WEB3,DEBUG,TXPOOL,QBFT,ADMIN,TRACE"
+      BESU_RPC_HOST_ALLOWLIST: "localhost,127.0.0.1,lxon-725-node-5"
+    ports:
+      - "127.0.0.1:8649:8545"
+
+# Fixed subnet so node-1's pinned 172.28.97.2 (and therefore the enode URL in enode-1.txt)
+# survives `down` + `up`. 172.28.97.0/24 was checked against `netstat -rn -f inet` on this
+# host before being chosen; nothing else routes there. The other three/four validators take
+# dynamic addresses inside it -- only node-1 is ever named by a bootnode URL.
+networks:
+  default:
+    name: lxon-testnet-725_default
+    ipam:
+      config:
+        - subnet: 172.28.97.0/24

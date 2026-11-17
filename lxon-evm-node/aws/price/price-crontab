@@ -1,0 +1,7 @@
+# Installed by hand into root's crontab on the EC2 node (/etc/cron.d style not used).
+# Verified present 2026-11-01: `sudo crontab -l` on 13.62.37.246 returns exactly this line.
+# To reinstall (this file lives in the repo, not on the box, so push it first):
+#   scp price-updater.py price-crontab ubuntu@<node>:/tmp/
+#   ssh ubuntu@<node> 'sudo cp /tmp/price-updater.py /opt/lxon/ && sudo crontab -l > /tmp/ct; tail -1 /tmp/price-crontab >> /tmp/ct; sudo crontab /tmp/ct'
+# The last line only — `tail -1` — because the comment header above is not a crontab entry.
+*/5 * * * * /usr/bin/sudo /usr/bin/python3 /opt/lxon/price-updater.py >> /opt/lxon/price-updater.log 2>&1

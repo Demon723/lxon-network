@@ -1,0 +1,227 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "CloudFormationStackLifecycle",
+      "Effect": "Allow",
+      "Action": [
+        "cloudformation:CreateStack",
+        "cloudformation:UpdateStack",
+        "cloudformation:DeleteStack",
+        "cloudformation:DescribeStacks",
+        "cloudformation:DescribeStackEvents",
+        "cloudformation:DescribeStackResources",
+        "cloudformation:GetTemplateSummary",
+        "cloudformation:ValidateTemplate",
+        "cloudformation:ListStacks",
+        "cloudformation:ListStackResources",
+        "cloudformation:DetectStackDrift",
+        "cloudformation:BatchDescribeTypeConfigurations"
+      ],
+      "Resource": [
+        "arn:aws:cloudformation:eu-north-1:404268099234:stack/lxon-*/*"
+      ]
+    },
+    {
+      "Sid": "CloudFormationTemplateBucket",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:ListBucket"
+      ],
+      "Resource": [
+        "arn:aws:s3:::lxon-cfn-artifacts-eu-north-1",
+        "arn:aws:s3:::lxon-cfn-artifacts-eu-north-1/*"
+      ]
+    },
+    {
+      "Sid": "Ec2ResourcesTheTemplatesCreate",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:RunInstances",
+        "ec2:StartInstances",
+        "ec2:StopInstances",
+        "ec2:TerminateInstances",
+        "ec2:DescribeInstances",
+        "ec2:DescribeInstanceStatus",
+        "ec2:CreateVpc",
+        "ec2:DeleteVpc",
+        "ec2:DescribeVpcs",
+        "ec2:CreateSubnet",
+        "ec2:DeleteSubnet",
+        "ec2:DescribeSubnets",
+        "ec2:CreateSecurityGroup",
+        "ec2:DeleteSecurityGroup",
+        "ec2:DescribeSecurityGroups",
+        "ec2:AuthorizeSecurityGroupIngress",
+        "ec2:RevokeSecurityGroupIngress",
+        "ec2:DescribeSecurityGroupRules",
+        "ec2:CreateInternetGateway",
+        "ec2:DeleteInternetGateway",
+        "ec2:AttachInternetGateway",
+        "ec2:DetachInternetGateway",
+        "ec2:DescribeInternetGateways",
+        "ec2:CreateNatGateway",
+        "ec2:DeleteNatGateway",
+        "ec2:DescribeNatGateways",
+        "ec2:AllocateAddress",
+        "ec2:ReleaseAddress",
+        "ec2:AssociateAddress",
+        "ec2:DisassociateAddress",
+        "ec2:DescribeAddresses",
+        "ec2:CreateRoute",
+        "ec2:DeleteRoute",
+        "ec2:CreateRouteTable",
+        "ec2:DeleteRouteTable",
+        "ec2:DescribeRouteTables",
+        "ec2:AssociateRouteTable",
+        "ec2:DisassociateRouteTable",
+        "ec2:AttachVpcGateway",
+        "ec2:DetachVpcGateway",
+        "ec2:ModifySubnetAttribute",
+        "ec2:ModifyVpcAttribute",
+        "ec2:CreateTags",
+        "ec2:DescribeTags",
+        "ec2:DescribeImages",
+        "ec2:DescribeAvailabilityZones",
+        "ec2:DescribeKeyPairs",
+        "ec2:CreateKeyPair",
+        "ec2:DescribeVolumes",
+        "ec2:CreateSnapshot",
+        "ec2:DescribeSnapshots"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "MonitoringTheTemplatesCreate",
+      "Effect": "Allow",
+      "Action": [
+        "cloudwatch:PutMetricAlarm",
+        "cloudwatch:DeleteAlarms",
+        "cloudwatch:DescribeAlarms",
+        "cloudwatch:SetAlarmState",
+        "cloudwatch:PutDashboard",
+        "cloudwatch:GetDashboard",
+        "cloudwatch:ListDashboards",
+        "cloudwatch:ListMetrics",
+        "cloudwatch:GetMetricData",
+        "cloudwatch:GetMetricStatistics",
+        "cloudwatch:PutMetricData"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "LogsAndNotifications",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:DeleteLogGroup",
+        "logs:DescribeLogGroups",
+        "logs:ListTagsLogGroup",
+        "logs:PutRetentionPolicy",
+        "sns:CreateTopic",
+        "sns:DeleteTopic",
+        "sns:GetTopicAttributes",
+        "sns:SetTopicAttributes",
+        "sns:ListTopics",
+        "sns:Subscribe",
+        "sns:Unsubscribe",
+        "sns:ListSubscriptionsByTopic"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "CloudTrailAndItsBucket",
+      "Effect": "Allow",
+      "Action": [
+        "cloudtrail:CreateTrail",
+        "cloudtrail:UpdateTrail",
+        "cloudtrail:DeleteTrail",
+        "cloudtrail:StartLogging",
+        "cloudtrail:StopLogging",
+        "cloudtrail:DescribeTrails",
+        "cloudtrail:GetTrailStatus",
+        "cloudtrail:GetEventSelectors",
+        "cloudtrail:PutEventSelectors",
+        "cloudtrail:PutInsightSelectors",
+        "cloudtrail:EnableCloudTrailLogsInsights"
+      ],
+      "Resource": "arn:aws:cloudtrail:eu-north-1:404268099234:trail/lxon-*"
+    },
+    {
+      "Sid": "BackupPlansAndVaults",
+      "Effect": "Allow",
+      "Action": [
+        "backup:CreateBackupPlan",
+        "backup:DeleteBackupPlan",
+        "backup:UpdateBackupPlan",
+        "backup:GetBackupPlan",
+        "backup:ListBackupPlans",
+        "backup:CreateBackupVault",
+        "backup:DeleteBackupVault",
+        "backup:ListBackupVaults",
+        "backup:PutBackupVaultAccessPolicy",
+        "backup:CreateBackupSelection",
+        "backup:DeleteBackupSelection",
+        "backup:GetBackupSelection",
+        "backup:ListBackupSelections",
+        "backup:StartBackupJob",
+        "backup:DescribeBackupJob",
+        "backup:ListBackupJobs",
+        "backup:ListRecoveryPointsByBackupVault"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "IamRolesCreatedByTheStacks",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateRole",
+        "iam:DeleteRole",
+        "iam:GetRole",
+        "iam:PutRolePolicy",
+        "iam:DeleteRolePolicy",
+        "iam:ListRolePolicies",
+        "iam:ListAttachedRolePolicies",
+        "iam:TagRole",
+        "iam:CreateInstanceProfile",
+        "iam:DeleteInstanceProfile",
+        "iam:GetInstanceProfile",
+        "iam:AddRoleToInstanceProfile",
+        "iam:RemoveRoleFromInstanceProfile",
+        "iam:PassRole"
+      ],
+      "Resource": [
+        "arn:aws:iam::404268099234:role/lxon-*",
+        "arn:aws:iam::404268099234:instance-profile/lxon-*"
+      ]
+    },
+    {
+      "Sid": "KmsForCloudTrailEncryption",
+      "Effect": "Allow",
+      "Action": [
+        "kms:CreateKey",
+        "kms:DescribeKey",
+        "kms:ScheduleKeyDeletion",
+        "kms:CreateAlias",
+        "kms:DeleteAlias",
+        "kms:UpdateKeyDescription",
+        "kms:EnableKeyRotation",
+        "kms:PutKeyPolicy",
+        "kms:GetKeyPolicy",
+        "kms:ListAliases",
+        "kms:TagResource"
+      ],
+      "Resource": "arn:aws:kms:eu-north-1:404268099234:key/*"
+    }
+  ],
+  "_comments": {
+    "why_this_shape": "Derived from the 32 distinct resource types the five templates declare, not copied from the AWS managed wildcard. cloudformation:CreateStack is stack-name scoped (lxon-*); iam:PassRole is role-name scoped so this user cannot hand an arbitrary existing role to a new instance.",
+    "still_not_included": [
+      "iam:CreateServiceLinkedRole — AWS Backup and CloudTrail both need it. It is account-wide and cannot be resource-scoped, so it needs an explicit yes from the account owner.",
+      "cloudformation:Import* (resource import) — needed only if the existing i-0be453b2850bd6eae is brought under a stack instead of replaced.",
+      "secretsmanager:* and ssm:* — deliberately absent. The QBFT validator key is delivered over SSH by push-secrets.sh and keeping it out of this policy is intentional."
+    ]
+  }
+}

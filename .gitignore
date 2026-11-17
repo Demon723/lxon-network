@@ -1,0 +1,113 @@
+node_modules/
+.cache/
+artifacts/
+typechain-types/
+/deployments/   # anchored to repo root on purpose (was `deployments/`)
+.env
+.env.local
+.env.*.local
+*.log
+.DS_Store
+/aws/   # anchored to repo root on purpose (was `aws/`, which also ignored lxon-evm-node/aws/)
+node_modules/
+*.lock
+node_modules/
+apps/contracts/cache/
+apps/contracts-helios/cache/
+apps/contracts-helios/out/
+apps/contracts-helios/artifacts/
+apps/contracts-helios/typechain-types/
+apps/contracts-helios/deployments/
+apps/backend/dist/
+apps/backend/cache/
+*.tsbuildinfo
+.terraform/
+*.tfstate
+*.tfstate.*
+terraform.tfvars
+
+# Release gate / security cleanup
+*.pem
+*.key
+privatekey*
+password*.txt
+*.p12
+*.pfx
+*.jks
+*.keystore
+apps/contracts/.env
+apps/founder-device/.env
+apps/frontend/.env
+apps/frontend/.env.production
+apps/frontend/.env.test
+apps/backend/.env
+apps/backend/.env.production
+apps/block-explorer/.env
+apps/monitoring/.env
+apps/contracts/cache/
+apps/contracts/artifacts/
+apps/contracts/typechain-types/
+# Commit the one deployment record that is true; keep the 37 pre-reset / aspirational files out
+# of the index (they reference 173 addresses that have no code on chain 724). The negation only
+# works because this rule excludes the *contents* — `deployments/` alone would make
+# `!deployments/lxon-chain-724.json` a no-op, since git cannot re-include a file under an
+# excluded directory.
+apps/contracts/deployments/*
+!apps/contracts/deployments/lxon-chain-724.json
+# The trust index for this directory. It has to be re-included explicitly: the 37 ignored records
+# around it are exactly why a written-down conclusion about them is worth versioning, and an ignored
+# README reaches nobody — not a clone, not a review, not CI.
+!apps/contracts/deployments/README.md
+RELEASE_MANIFEST.json
+# lxon-evm-node was ignored wholesale because of the QBFT validator key inside it. Ignore the
+# keys and the data dirs by name instead, so the genesis file, the RPC-hardening entrypoint, the
+# compose stacks and every ops script are versioned. 26 of the 30 files outside the data dirs are
+# source; 4 are secrets. Verified in a scratch repo before this change.
+lxon-evm-node/**/privatekey*.txt
+lxon-evm-node/**/nodekey
+lxon-evm-node/**/password*.txt
+lxon-evm-node/**/*.pem
+lxon-evm-node/**/*.jks
+lxon-evm-node/**/keystore*/
+lxon-evm-node/geth/data/
+lxon-evm-node/besu/data/
+# Bridge signing validators (added 2026-10-21 so minConfirmations=2 has real signers). These
+# are throwaway signing accounts, not the QBFT validator key, but they are still key material
+# and are used by `cast send` from scripts — the whole directory stays untracked. Rule shape
+# matters: `validators/` would block re-including anything later, so exclude the contents.
+lxon-evm-node/besu/validators/*
+
+# Local 725/726 QBFT testbed: throwaway validator keys and blockstores. The generated
+# genesis.json files ARE versioned (public data); nothing under keys/ or */node-*/ is.
+# `besu operator generate-blockchain-config --to=<dir>` writes a directory per node there
+# (key + key.pub), so */raw/ is ignored even though make-genesis.py now builds outside the repo.
+lxon-evm-node/besu/testnet/keys/*
+lxon-evm-node/besu/testnet/725/node-*/
+lxon-evm-node/besu/testnet/726/node-*/
+lxon-evm-node/besu/testnet/*/raw/
+lxon-evm-node/besu/testnet/__pycache__/
+# Python bytecode dirs are never a deliverable, and running a checker with py_compile drops one
+# wherever the imported module lives (script/polygon137/lib/ gained one on 2026-10-28). Nothing in
+# this repository tracks a __pycache__ file, so the broad rule cannot shadow a real one.
+__pycache__/
+*.pyc
+# N2: `besu operator generate-blockchain-config` writes real node private keys into a temporary
+# directory (gen/keys/<addr>/key). make-genesis.py builds it outside the repo and sweeps survivors,
+# but a SIGKILL honours neither, and the paths above do not match that shape -- so these two rules
+# are the last line of defence against a survivor being staged by an indiscriminate `git add -A`.
+besu-operator-*
+**/gen/keys/
+
+lxon-evm-node/**/.env
+lxon-evm-node/**/.env.*
+!lxon-evm-node/.env.example
+deployment/chainlist/ethereum-lists/_data/icons/lxon.json
+
+# Rust build artifacts
+/target/
+**/target/
+
+# Vendored Foundry libraries. lib/forge-std is an embedded git repo that .gitmodules never
+# declared, so it can only land as a gitlink or a snapshot; restore with `forge install`.
+apps/contracts/lib/
+lxon-evm-node/besu/testnet/enode-1.txt

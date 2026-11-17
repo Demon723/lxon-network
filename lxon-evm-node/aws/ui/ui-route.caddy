@@ -1,0 +1,49 @@
+# /ui route — inserted INSIDE the {$EXPLORER_DOMAIN} site block, before the catch-all handle.
+#
+# This is not a sites-enabled file: sites-enabled entries are separate SITE blocks (their own
+# hostnames), and a path route on the explorer's own host has to sit inside that host's block,
+# ahead of the `handle { reverse_proxy blockscout-frontend }` catch-all. Handles are mutually
+# exclusive and evaluated in written order, so a route placed after the catch-all can never match
+# — the same reason the brand snippet is imported above it in the repo's caddy/Caddyfile. Note that the
+# live file on the node has no brand import at all and /opt/lxon/brand does not exist there, so
+# explorer.lxon.in/brand/* answers 404 (measured 2026-10-31); the listing assets are unaffected because
+# they are served from /assets/ out of /data/ui, which returns 200 image/png on both hostnames.
+#
+# enable-ui.sh inserts these lines verbatim, in place, into /opt/lxon/caddy/Caddyfile.
+#
+# Why the pages live here at all: the USD rows read /swap/price.json from the same origin, which was
+# the only way to read it until 2026-10-31 (the feed sent no Access-Control-Allow-Origin, so a page on
+# file:// or another host left those rows blank and said why). The feed now sends the header — see the
+# /swap rule below — so this is no longer a constraint, but the pages still live here for the URL the
+# listing documents advertise.
+#
+# THE /swap RULE HAS NO SNIPPET FILE, and that is a trap for the next operator. /data/swap's route was
+# written directly into /opt/lxon/caddy/Caddyfile on 2026-10-22, and the repo's tracked
+# caddy/Caddyfile is a DIFFERENT generation of that file: it still carries the brand import and lacks
+# both the /swap and /ui blocks. So neither file is the source of truth for the box. What was added to
+# the live file on 2026-10-31, inside handle_path /swap/*, is:
+#
+#	header /price.json Access-Control-Allow-Origin "*"
+#
+# Same stripped-path rule as the line below (it must name /price.json, not /swap/price.json), same
+# scope decision (the JSON only, never the HTML). enable-ui.sh --check now refuses if it goes missing,
+# which is the durable record; edit the live file in place (cat >, never mv/sed -i) and reload.
+	handle_path /ui/* {
+		root * /data/ui
+		file_server {
+			index landing-light.html
+		}
+		header Cache-Control "no-cache"
+		# CORS for the token list only, added 2026-10-31 so explorer.lxon.in/ui/lxon-token-list.json
+		# is importable the way www.lxon.in/lxon-token-list.json already is. The matcher reads the
+		# STRIPPED path, because handle_path rewrites the request before its handlers run — rehearsed
+		# in a throwaway container on this box before it was applied: /ui/lxon-token-list.json ->
+		# ACAO=*, /ui/landing-light.html -> none, /ui/ -> none, /ui/nope.json (a 404) -> none. That is
+		# why this line names the file and not /ui/lxon-token-list.json: written with the prefix it
+		# would match nothing and every page would stay header-less while the config validated fine.
+		# Scoping it to the one file is deliberate — a bare `header` here would make every HTML page on
+		# this origin cross-origin readable, and only the list is fetched by machines from elsewhere.
+		header /lxon-token-list.json Access-Control-Allow-Origin "*"
+	}
+	# /ui without the trailing slash, mirroring the /swap rule above.
+	redir /ui /ui/ 308

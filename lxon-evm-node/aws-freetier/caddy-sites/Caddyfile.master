@@ -1,0 +1,13 @@
+{
+	admin localhost:2019
+	# ACME contact address is deliberately NOT fabricated. Add `email someone@lxon.in` with a real
+	# mailbox if the owner wants Let's Encrypt renewal warnings; an invented address is worse than
+	# none, and Caddy issues without it.
+}
+
+# One fragment per public hostname, in /etc/caddy/sites-enabled/. Both fronts share this single
+# Caddyfile, which is why the first version of expose-rpc.sh (which wrote the whole file from one
+# template) had to stop: a second site installed that way would have silently deleted rpc.lxon.in.
+# A fragment is added, removed or swapped independently; nothing in here binds a public socket
+# except through a site block.
+import /etc/caddy/sites-enabled/*.caddy

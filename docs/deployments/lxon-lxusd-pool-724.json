@@ -1,0 +1,128 @@
+{
+ "network": "lxonMainnet",
+ "chainId": 724,
+ "deployedAt": "2026-10-28T13:14:16.138891Z",
+ "deployer": "0xFaE699d2848957c7c3bE67D8c90f0E456419cAdA",
+ "startNonce": 89,
+ "contracts": {
+  "LXUSD": "0x800B786cAC711FD28E9a72c3a0927fD286781D4F",
+  "LXUSDPair": "0x24ad1dE7C0704B3c223Ebd8A429F8F2dFD51662a",
+  "LXUSDRouter": "0x8D76F9d650F46B69255bac9A970625066f6166Ba"
+ },
+ "token": {
+  "name": "LXON Stable Dollar",
+  "symbol": "LXUSD",
+  "decimals": 6,
+  "REDEEMABLE": false,
+  "whatItIs": "a 6-decimal unit of account issued by the LXON project for pricing on chain 724; not USDC, not Circle-issued, not redeemable, not backed by any reserve; mintable by the owner. The contract states all of this on-chain via notice()."
+ },
+ "seed": {
+  "lxonWei": 100000000000000000000000,
+  "lxusdUnits": 23364600000,
+  "priceSource": "derived from the live LXON/WETH reserves on pair 0x272a3ed4... and the ethUsd field of https://explorer.lxon.in/swap/price.json -- not chosen by the operator",
+  "ethUsdAtSeed": 2336.46,
+  "usdPerLxonTarget": 0.23364600000000002
+ },
+ "afterSeed": {
+  "reserve0Lxusd": 23364600000,
+  "reserve1Lxon": 100000000000000000000000,
+  "impliedUsdPerLxon": 0.23364600000000002,
+  "lpTotalSupply": 48336942393990954,
+  "lpHeldByDeployer": 48336942393990953,
+  "lpConcentration": "100% deployer apart from Pair.MINIMUM_LIQUIDITY (1 unit) minted to the zero address"
+ },
+ "rehearsal": "script/RehearseStablePool724.sh -- 24 assertions, 0 failures, reproduced twice on a fork of 724",
+ "honestyNote": "The USD number this pool prints inherits the self-dealt ETH price of the LXON/WETH pool. It is a denomination of an existing self-referential quote, not an independent dollar market.",
+ "transactions": [
+  {
+   "nonce": 89,
+   "hash": "0xab1f575a85046bc5e3e002883ac331e056473411cdebae51549f634602d8cdf4",
+   "block": 165413,
+   "to": "(creation)",
+   "method": "create",
+   "gasUsed": "728288",
+   "status": "ok",
+   "timestamp": "2026-10-28T13:13:18"
+  },
+  {
+   "nonce": 90,
+   "hash": "0x96d7c99688cf6843d16c29badaa6509029de012f848932a5712086d0790d8fcb",
+   "block": 165415,
+   "to": "(creation)",
+   "method": "create",
+   "gasUsed": "1358902",
+   "status": "ok",
+   "timestamp": "2026-10-28T13:13:28"
+  },
+  {
+   "nonce": 91,
+   "hash": "0x21cdc36ccf406c4c19124c7b027ecbf3b9f1d48a56851229525d4861112a91aa",
+   "block": 165418,
+   "to": "(creation)",
+   "method": "create",
+   "gasUsed": "1505017",
+   "status": "ok",
+   "timestamp": "2026-10-28T13:13:43"
+  },
+  {
+   "nonce": 92,
+   "hash": "0x4fd7b7392bd92bec31d14060d1ee76236cc6d99bf3c1c35dd8ad526b64a5b58c",
+   "block": 165419,
+   "to": "0x800B786cAC711FD28E9a72c3a0927fD286781D4F",
+   "method": "mint",
+   "gasUsed": "71675",
+   "status": "ok",
+   "timestamp": "2026-10-28T13:13:48"
+  },
+  {
+   "nonce": 93,
+   "hash": "0xb16f8cf906ee041a4f9b840ef832909fbcb77949a6cf32f1d04d9f9825d3e8ce",
+   "block": 165421,
+   "to": "0x99801A78639975D448EEb2f8a807738DC8Df67Dc",
+   "method": "approve",
+   "gasUsed": "48181",
+   "status": "ok",
+   "timestamp": "2026-10-28T13:13:58"
+  },
+  {
+   "nonce": 94,
+   "hash": "0x6c3988ec4e75185e46a304bffb2ded68ed9e7778665fd21354678e1d726d8643",
+   "block": 165422,
+   "to": "0x800B786cAC711FD28E9a72c3a0927fD286781D4F",
+   "method": "approve",
+   "gasUsed": "45945",
+   "status": "ok",
+   "timestamp": "2026-10-28T13:14:03"
+  },
+  {
+   "nonce": 95,
+   "hash": "0xdbb50241cbb1a5925f4af461f2b88270b1a4e2df71ced0b63777f25cb44f275f",
+   "block": 165423,
+   "to": "0x8D76F9d650F46B69255bac9A970625066f6166Ba",
+   "method": "addLiquidity",
+   "gasUsed": "240029",
+   "status": "ok",
+   "timestamp": "2026-10-28T13:14:08"
+  }
+ ],
+ "totalGasUsed": 3998037,
+ "gasCostWeiAt7": 27986259,
+ "verifiedAfterDeploy": {
+  "readFrom": "https://rpc.lxon.in, eth_call only",
+  "pairGetAmountOut_1LXON": "232942 LXUSD units = $0.232942 after the 0.3% fee, against a $0.233646 mid",
+  "token": {
+   "decimals": 6,
+   "symbol": "LXUSD",
+   "REDEEMABLE": false,
+   "totalSupply": 23364600000
+  },
+  "pair": {
+   "token0": "0x800B786cAC711FD28E9a72c3a0927fD286781D4F",
+   "token1": "0x99801A78639975D448EEb2f8a807738DC8Df67Dc",
+   "totalSupply": 48336942393990954
+  },
+  "deployerLxon": "89,907,900 -> 89,807,900, exactly the 100,000 seeded",
+  "nonceRun": "89..95, latest==pending before the run and 96 after"
+ },
+ "sourceVerification": "NOT DONE -- the three new addresses are unverified on explorer.lxon.in. The 2026-10-22 DEX was verified by standard-input submission with the full solc commit hash (v0.8.26+commit.8a97fa7a) and license_type=none; same recipe applies."
+}

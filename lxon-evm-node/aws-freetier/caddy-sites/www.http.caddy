@@ -1,0 +1,33 @@
+# INTERIM — the site over plain HTTP, no certificate, reachable only while www.lxon.in does not
+# resolve here. expose-www.sh measures the A record and swaps this for www.https.caddy on its own.
+#
+# Deliberately NO `:80 {}` block here: catchall.caddy owns the unmatched-Host response in every
+# mode, and two fragments claiming :80 would merge into one server in an order no caller can predict.
+http://www.lxon.in {
+	root * /opt/lxon/www
+	encode zstd gzip
+
+	handle /app {
+		rewrite * /app/index.html
+		file_server
+	}
+	handle /app/* {
+		rewrite * /app/index.html
+		file_server
+	}
+	handle /swap {
+		rewrite * /swap/index.html
+		file_server
+	}
+	handle {
+		file_server
+	}
+
+	log {
+		output file /var/log/caddy/www-lxon-in.access.log {
+			roll_size 10MiB
+			roll_keep 5
+		}
+		format json
+	}
+}

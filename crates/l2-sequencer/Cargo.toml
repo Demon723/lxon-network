@@ -1,0 +1,20 @@
+[package]
+name = "l2-sequencer"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+crypto-pqc = { path = "../crypto-pqc" }
+tokio.workspace = true
+async-trait.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+dashmap.workspace = true
+parking_lot.workspace = true
+hex.workspace = true
+bincode.workspace = true
+
+[dev-dependencies]
+rand.workspace = true

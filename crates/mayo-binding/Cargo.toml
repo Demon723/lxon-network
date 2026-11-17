@@ -1,0 +1,24 @@
+[package]
+name = "lxon-mayo-binding"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "lxon_mayo_binding"
+crate-type = ["cdylib"]
+
+[dependencies]
+# Real MAYO implementation from pq-mayo crate
+pq-mayo = { workspace = true }
+signature = { workspace = true }
+rand = "0.10"
+thiserror = { workspace = true }
+serde = { workspace = true, optional = true }
+serde_bytes = { version = "0.11", optional = true }
+wasm-bindgen = { version = "0.2", optional = true }
+getrandom = { version = "0.4", features = ["wasm_js"] }
+
+[features]
+default = []
+serde = ["dep:serde", "dep:serde_bytes", "pq-mayo/serde"]
+wasm = ["wasm-bindgen"]

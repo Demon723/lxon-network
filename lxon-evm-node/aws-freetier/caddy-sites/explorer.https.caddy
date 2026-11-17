@@ -1,0 +1,27 @@
+# explorer.lxon.in no longer runs an explorer. It resolves to this instance because the chain's old
+# host is gone, so the honest choice is a page saying so with live chain facts -- not a TLS error for
+# anyone who clicks "Block explorer" on the site.
+explorer.lxon.in {
+	root * /opt/lxon/www
+	encode zstd gzip
+
+	handle /assets/* {
+		file_server
+	}
+	handle {
+		rewrite * /explorer-offline/index.html
+		file_server
+	}
+
+	log {
+		output file /var/log/caddy/explorer-lxon-in.access.log {
+			roll_size 10MiB
+			roll_keep 3
+		}
+		format json
+	}
+}
+
+http://explorer.lxon.in {
+	redir https://explorer.lxon.in{uri} permanent
+}

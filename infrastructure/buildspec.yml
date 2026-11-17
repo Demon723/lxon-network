@@ -1,0 +1,42 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 20
+    commands:
+      - echo Installing dependencies
+      - npm install -g pnpm
+      - pnpm install
+
+  pre_build:
+    commands:
+      - echo Running tests
+      - pnpm test
+
+  build:
+    commands:
+      - echo Building contracts
+      - pnpm build
+      - echo Compiling Solidity contracts
+      - pnpm compile
+
+  post_build:
+    commands:
+      - echo Build completed successfully
+      - echo Exporting build artifacts
+      - ls -la dist/
+      - ls -la artifacts/
+
+artifacts:
+  files:
+    - 'dist/**/*'
+    - 'artifacts/**/*'
+    - 'apps/contracts/**/*'
+  name: build-output
+  discard-paths: yes
+
+cache:
+  paths:
+    - 'node_modules/**/*'
+    - '.pnpm-store/**/*'

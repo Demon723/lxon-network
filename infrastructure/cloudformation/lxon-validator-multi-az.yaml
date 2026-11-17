@@ -1,0 +1,582 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: LXON Blockchain Validators - Multi-AZ Architecture (3 Validators for Byzantine Fault Tolerance)
+
+Parameters:
+  Environment:
+    Type: String
+    Default: production
+    AllowedValues:
+      - development
+      - staging
+      - production
+    Description: Environment name
+
+  InstanceType:
+    Type: String
+    Default: t3.medium
+    AllowedValues:
+      - t3.medium
+      - t3.large
+      - t3.xlarge
+      - m5.large
+      - m5.xlarge
+    Description: EC2 instance type for validators
+
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: SSH key pair name
+
+  VpcCidr:
+    Type: String
+    Default: 10.0.0.0/16
+    Description: VPC CIDR block
+
+  PrivateSubnet1Cidr:
+    Type: String
+    Default: 10.0.1.0/24
+    Description: Private subnet 1 CIDR block (AZ A)
+
+  PrivateSubnet2Cidr:
+    Type: String
+    Default: 10.0.2.0/24
+    Description: Private subnet 2 CIDR block (AZ B)
+
+  PrivateSubnet3Cidr:
+    Type: String
+    Default: 10.0.3.0/24
+    Description: Private subnet 3 CIDR block (AZ C)
+
+  PublicSubnetCidr:
+    Type: String
+    Default: 10.0.10.0/24
+    Description: Public subnet CIDR block for RPC gateway
+
+  ChainId:
+    Type: Number
+    Default: 724
+    Description: Blockchain chain ID
+
+  BackupRetentionDays:
+    Type: Number
+    Default: 30
+    AllowedValues:
+      - 7
+      - 14
+      - 30
+      - 60
+      - 90
+    Description: Backup retention period in days
+
+  ValidatorCount:
+    Type: Number
+    Default: 3
+    AllowedValues:
+      - 3
+      - 4
+      - 5
+    Description: Number of validator nodes (minimum 3 for BFT)
+
+Resources:
+  # VPC
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCidr
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-lxon-vpc
+        - Key: Environment
+          Value: !Ref Environment
+
+  # Internet Gateway
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-lxon-igw
+
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  # Public Subnet for RPC Gateway
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PublicSubnetCidr
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-lxon-public-subnet
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-lxon-public-rt
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref PublicRouteTable
+
+  # NAT Gateway
+  NatGatewayEIP:
+    Type: AWS::EC2::EIP
+    DependsOn: VPCGatewayAttachment
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-lxon-nat-eip
+
+  NatGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatGatewayEIP.AllocationId
+      SubnetId: !Ref PublicSubnet
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-lxon-nat-gateway
+
+  # Private Subnets for Validators (3 AZs)
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PrivateSubnet1Cidr
+      AvailabilityZone: !Select [0, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-lxon-private-subnet-1
+
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PrivateSubnet2Cidr
+      AvailabilityZone: !Select [1, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-lxon-private-subnet-2
+
+  PrivateSubnet3:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PrivateSubnet3Cidr
+      AvailabilityZone: !Select [2, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-lxon-private-subnet-3
+
+  # Private Route Table
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-lxon-private-rt
+
+  PrivateRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway
+
+  PrivateSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet1
+      RouteTableId: !Ref PrivateRouteTable
+
+  PrivateSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet2
+      RouteTableId: !Ref PrivateRouteTable
+
+  PrivateSubnet3RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet3
+      RouteTableId: !Ref PrivateRouteTable
+
+  # Security Groups
+  ValidatorSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for LXON validators
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+          Description: SSH access
+        - IpProtocol: tcp
+          FromPort: 30303
+          ToPort: 30303
+          CidrIp: 10.0.0.0/16
+          Description: P2P peer discovery
+        - IpProtocol: udp
+          FromPort: 30303
+          ToPort: 30303
+          CidrIp: 10.0.0.0/16
+          Description: P2P peer discovery UDP
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-lxon-validator-sg
+
+  RPCGatewaySecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for RPC gateway
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+          Description: SSH access
+        - IpProtocol: tcp
+          FromPort: 8545
+          ToPort: 8545
+          CidrIp: 0.0.0.0/0
+          Description: JSON-RPC access
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 10.0.0.0/16
+          Description: Access to validators
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-lxon-rpc-gateway-sg
+
+  # IAM Role for EC2 Instances
+  ValidatorInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-lxon-validator-role
+
+  ValidatorInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref ValidatorInstanceRole
+
+  CloudWatchLogsPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: LXONCloudWatchLogsPolicy
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+              - logs:PutRetentionPolicy
+            Resource: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:lxon-blockchain/*
+      Roles:
+        - !Ref ValidatorInstanceRole
+
+  # CloudWatch Log Groups
+  BesuLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: lxon-blockchain/besu
+      RetentionInDays: 7
+
+  SystemLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: lxon-blockchain/system
+      RetentionInDays: 7
+
+  # CloudWatch Alarms
+  CPUAlarmHigh:
+    Type: AWS::CloudWatch::CompositeAlarm
+    Properties:
+      AlarmName: !Sub ${Environment}-lxon-validators-cpu-high
+      AlarmDescription: Alarm if any validator CPU > 80% for 5 minutes
+      AlarmRule: !Sub ALARM(${Environment}-lxon-validator-1-cpu-high OR ${Environment}-lxon-validator-2-cpu-high OR ${Environment}-lxon-validator-3-cpu-high)
+      ActionsEnabled: true
+
+  # Validator 1
+  Validator1Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !FindInMap [RegionMap, !Ref 'AWS::Region', AMI]
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      SubnetId: !Ref PrivateSubnet1
+      SecurityGroupIds:
+        - !Ref ValidatorSecurityGroup
+      IamInstanceProfile: !Ref ValidatorInstanceProfile
+      Monitoring: true
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 20
+            VolumeType: gp3
+            Encrypted: true
+            DeleteOnTermination: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-lxon-validator-1
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: ChainId
+          Value: !Ref ChainId
+        - Key: ValidatorIndex
+          Value: 1
+
+  Validator1CPUAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Alarm if validator 1 CPU > 80% for 5 minutes
+      AlarmName: !Sub ${Environment}-lxon-validator-1-cpu-high
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 80
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: InstanceId
+          Value: !Ref Validator1Instance
+
+  # Validator 2
+  Validator2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !FindInMap [RegionMap, !Ref 'AWS::Region', AMI]
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      SubnetId: !Ref PrivateSubnet2
+      SecurityGroupIds:
+        - !Ref ValidatorSecurityGroup
+      IamInstanceProfile: !Ref ValidatorInstanceProfile
+      Monitoring: true
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 20
+            VolumeType: gp3
+            Encrypted: true
+            DeleteOnTermination: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-lxon-validator-2
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: ChainId
+          Value: !Ref ChainId
+        - Key: ValidatorIndex
+          Value: 2
+
+  Validator2CPUAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Alarm if validator 2 CPU > 80% for 5 minutes
+      AlarmName: !Sub ${Environment}-lxon-validator-2-cpu-high
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 80
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: InstanceId
+          Value: !Ref Validator2Instance
+
+  # Validator 3
+  Validator3Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !FindInMap [RegionMap, !Ref 'AWS::Region', AMI]
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      SubnetId: !Ref PrivateSubnet3
+      SecurityGroupIds:
+        - !Ref ValidatorSecurityGroup
+      IamInstanceProfile: !Ref ValidatorInstanceProfile
+      Monitoring: true
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 20
+            VolumeType: gp3
+            Encrypted: true
+            DeleteOnTermination: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-lxon-validator-3
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: ChainId
+          Value: !Ref ChainId
+        - Key: ValidatorIndex
+          Value: 3
+
+  Validator3CPUAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Alarm if validator 3 CPU > 80% for 5 minutes
+      AlarmName: !Sub ${Environment}-lxon-validator-3-cpu-high
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 80
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: InstanceId
+          Value: !Ref Validator3Instance
+
+  # AWS Backup
+  BackupVault:
+    Type: AWS::Backup::BackupVault
+    Properties:
+      BackupVaultName: !Sub ${Environment}-lxon-backup-vault
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  BackupRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: backup.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicy
+
+  BackupPlan:
+    Type: AWS::Backup::BackupPlan
+    Properties:
+      BackupPlan:
+        BackupPlanName: !Sub ${Environment}-lxon-daily-backup
+        BackupPlanRule:
+          - RuleName: DailyBackup
+            TargetBackupVault: !Ref BackupVault
+            ScheduleExpression: cron(0 2 * * ? *)
+            StartWindowMinutes: 60
+            CompletionWindowMinutes: 180
+            Lifecycle:
+              DeleteAfterDays: !Ref BackupRetentionDays
+      BackupResources:
+        - ResourceArn: !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/${Validator1Instance}
+        - ResourceArn: !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/${Validator2Instance}
+        - ResourceArn: !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/${Validator3Instance}
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  BackupRoleAssociation:
+    Type: AWS::Backup::BackupSelection
+    Properties:
+      BackupPlanId: !Ref BackupPlan
+      BackupSelection:
+        SelectionName: !Sub ${Environment}-lxon-backup-selection
+        IamRoleArn: !GetAtt BackupRole.Arn
+        Resources:
+          - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/${Validator1Instance}
+          - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/${Validator2Instance}
+          - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/${Validator3Instance}
+
+Mappings:
+  RegionMap:
+    us-east-1:
+      AMI: ami-0c7217cdde317cfec
+    us-east-2:
+      AMI: ami-0568773882d492708
+    us-west-1:
+      AMI: ami-01e8f3f2f3e9c818a
+    us-west-2:
+      AMI: ami-01e8f3f2f3e9c818a
+    eu-west-1:
+      AMI: ami-0866b78ea185a27d5
+    eu-north-1:
+      AMI: ami-01e8f3f2f3e9c818a
+    eu-central-1:
+      AMI: ami-01e8f3f2f3e9c818a
+
+Outputs:
+  ValidatorInstanceIds:
+    Description: Validator Instance IDs (JSON array)
+    Value: !Sub
+      - '["${Validator1}","${Validator2}","${Validator3}"]'
+      - Validator1: !Ref Validator1Instance
+      - Validator2: !Ref Validator2Instance
+      - Validator3: !Ref Validator3Instance
+    Export:
+      Name: !Sub ${Environment}-LXONValidatorInstanceIds
+
+  Validator1InstanceId:
+    Description: Validator 1 Instance ID
+    Value: !Ref Validator1Instance
+    Export:
+      Name: !Sub ${Environment}-LXONValidator1InstanceId
+
+  Validator2InstanceId:
+    Description: Validator 2 Instance ID
+    Value: !Ref Validator2Instance
+    Export:
+      Name: !Sub ${Environment}-LXONValidator2InstanceId
+
+  Validator3InstanceId:
+    Description: Validator 3 Instance ID
+    Value: !Ref Validator3Instance
+    Export:
+      Name: !Sub ${Environment}-LXONValidator3InstanceId
+
+  VPCId:
+    Description: VPC ID
+    Value: !Ref VPC
+    Export:
+      Name: !Sub ${Environment}-LXONVPCId
+
+  BackupVaultArn:
+    Description: AWS Backup Vault ARN
+    Value: !GetAtt BackupVault.Arn
+    Export:
+      Name: !Sub ${Environment}-LXONBackupVaultArn

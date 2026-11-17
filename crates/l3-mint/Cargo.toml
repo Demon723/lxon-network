@@ -1,0 +1,17 @@
+[package]
+name = "l3-mint"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+crypto-pqc = { path = "../crypto-pqc" }
+serde.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+dashmap.workspace = true
+parking_lot.workspace = true
+hex.workspace = true
+
+[dev-dependencies]
+rand.workspace = true

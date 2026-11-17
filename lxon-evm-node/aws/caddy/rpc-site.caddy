@@ -1,0 +1,46 @@
+# The public JSON-RPC site. enable-public-rpc.sh copies this to
+# /opt/lxon/caddy/sites-enabled/02-rpc.caddy; the base Caddyfile pulls it in with a
+# top-level `import /etc/caddy/sites-enabled/*.caddy`, so while this file is absent the
+# explorer keeps working exactly as before and there is no RPC site at all.
+#
+# The address comes from {$RPC_DOMAIN}, which must match the A record on this instance and
+# is the name Caddy asks Let's Encrypt for. The fallback to 127.0.0.1 is deliberate: if this
+# file is ever present while RPC_DOMAIN is unset, Caddy binds an IP-address site (internal CA,
+# no ACME attempts, no rate-limit burn) instead of failing to parse and taking the explorer's
+# TLS with it.
+#
+# Paths served by the read-only node (see docker-compose.rpc.yml): ETH, NET and WEB3 only.
+# No QBFT/ADMIN/MINER/DEBUG/TXPOOL/TRACE, so this proxy does not have to be clever about
+# method filtering — the methods that must never be reachable do not exist on this listener.
+
+{$RPC_DOMAIN:127.0.0.1} {
+	encode gzip
+
+	# handle_path, not handle — and that distinction is the whole point. Besu's HTTP-RPC
+	# listener serves ONLY the root path: POST http://besu-rpc:8545/rpc answers 404 from Besu
+	# itself. A plain `handle /rpc` matched and forwarded the path unchanged, so the alias the
+	# chain-list draft publishes would have shipped as a dead 404. handle_path strips the
+	# prefix before proxying, so /rpc arrives at Besu as /.
+	handle_path /rpc* {
+		reverse_proxy besu-rpc:8545 {
+			header_up X-Forwarded-Proto https
+		}
+	}
+
+	# WebSocket RPC is a separate Besu listener (8546), also root-only, and the browser talks
+	# to it at /ws — same prefix strip.
+	handle_path /ws* {
+		reverse_proxy besu-rpc:8546
+	}
+
+	# Canonical form: the bare origin.
+	handle {
+		reverse_proxy besu-rpc:8545 {
+			header_up X-Forwarded-Proto https
+		}
+	}
+
+	log {
+		format json
+	}
+}

@@ -1,0 +1,52 @@
+name: lxon-testnet-726
+
+# Chain 726: single QBFT validator (n=1, f=0, quorum 1), mirroring production 724's
+# current topology. Its only job is to be a peer with a different chain id.
+# Port 8665, never 8655 -- besu/run-besu.sh owns 8655/8656.
+
+services:
+  perms:
+    image: alpine:3.20
+    container_name: lxon-726-perms
+    restart: "no"
+    user: "0:0"
+    volumes:
+      - ../testnet:/mnt
+    entrypoint: ["/bin/sh", "-c", "mkdir -p /mnt/726/node-1 && chown -R 1000:1000 /mnt/726 && chmod 700 /mnt/726/node-1"]
+
+  726-node-1:
+    image: hyperledger/besu:26.10.0
+    container_name: lxon-726-node-1
+    restart: unless-stopped
+    user: "1000:1000"
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: "0.5"
+    depends_on: { perms: { condition: service_completed_successfully } }
+    logging:
+      driver: json-file
+      options: { max-size: "20m", max-file: "2" }
+    entrypoint: ["/bin/sh", "/scripts/entrypoint-testnet-node.sh"]
+    volumes:
+      - ../testnet/726/genesis.json:/etc/besu/genesis.json:ro
+      - ../testnet/entrypoint-testnet-node.sh:/scripts/entrypoint-testnet-node.sh:ro
+      - ../testnet/keys/node-6.hex:/key/node.key:ro
+      - ../testnet/726/node-1:/var/lib/besu
+    environment:
+      JAVA_OPTS: "-Xmx320m -Xms128m -XX:+UseSerialGC -XX:MaxRAM=480m"
+      BESU_NODE_NAME: "726-node-1"
+      NODE_KEY: "/key/node.key"
+      BESU_BOOTNODES: ""
+      # Alone by design: n=1 has no peers to find, so it is its own root. Without this marker the
+      # entrypoint's "no bootnodes and not the root" guard would refuse to start it.
+      BESU_IS_BOOTNODE: "true"
+      BESU_RPC_API: "ETH,NET,WEB3,DEBUG,TXPOOL,QBFT,ADMIN,TRACE"
+      BESU_RPC_HOST_ALLOWLIST: "localhost,127.0.0.1,726-node-1"
+    ports:
+      - "127.0.0.1:8665:8545"
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8545'"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 60s

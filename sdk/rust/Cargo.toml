@@ -1,0 +1,32 @@
+[package]
+name = "lxon-sdk"
+version = "0.1.0"
+edition = "2021"
+description = "Rust SDK for the LXON post-quantum blockchain"
+license = "MIT"
+repository = "https://github.com/lxon/lxon-sdk-rs"
+readme = "README.md"
+keywords = ["blockchain", "crypto", "post-quantum", "satellite"]
+categories = ["cryptography", "api-bindings"]
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+reqwest = { version = "0.12", features = ["json"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+ethers = { version = "0.13", optional = true }
+pq-traits = "0.2"
+base64 = "0.22"
+
+[features]
+default = []
+evm = ["ethers"]
+pq = ["pq-traits"]
+
+[lib]
+name = "lxon_sdk"
+path = "src/lib.rs"
+
+[[bin]]
+name = "lxon"
+path = "src/main.rs"

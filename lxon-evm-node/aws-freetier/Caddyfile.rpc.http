@@ -1,0 +1,41 @@
+{
+	admin localhost:2019
+	# ACME contact address is deliberately NOT fabricated. Add `email someone@lxon.in` with a
+	# real mailbox when the owner wants renewal warnings; an invented address is worse than none.
+}
+
+# INTERIM FRONT — plain HTTP, no certificate.
+#
+# This exists only while rpc.lxon.in still resolves to the dead EIP 13.62.37.246. Let's Encrypt
+# validates the hostname, not the IP, so with DNS pointing elsewhere an HTTPS site here can never
+# bind 443 and Caddy logs "acme: error" forever. Serving HTTP means the gateway is genuinely
+# reachable and testable today, and nothing is claimed about TLS that cannot be verified.
+#
+# Run ./expose-rpc.sh again after the A record moves to this instance: it measures DNS and
+# switches this file for Caddyfile.rpc.https by itself.
+http://rpc.lxon.in {
+	encode zstd gzip
+
+	# The only upstream is the allow-listing gateway on loopback. Besu's own 8545 is not proxied
+	# from anywhere in this config.
+	reverse_proxy 127.0.0.1:9545 {
+		health_uri /
+		health_interval 15s
+		health_timeout 5s
+	}
+
+	log {
+		output file /var/log/caddy/rpc-lxon-in.access.log {
+			roll_size 10MiB
+			roll_keep 5
+		}
+		format json
+	}
+}
+
+# Anything that arrives with no matching Host header (a raw curl to the IP, a scanner) gets a
+# closed 404 rather than the RPC, so the box never answers as an open RPC on a hostname it
+# was not given.
+:80 {
+	respond "not found" 404
+}

@@ -1,0 +1,119 @@
+name: lxon-evm
+
+# Public read-only RPC overlay. Applied ON TOP of the base + HTTPS stacks:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.aws.yml \
+#     -f docker-compose.https.yml -f docker-compose.rpc.yml up -d
+#
+# Use aws/enable-public-rpc.sh instead — it waits until the new node has actually synced to
+# the sealer's head before publishing anything, and it validates the Caddy config before
+# reloading the proxy that also serves the explorer.
+#
+# WHY A SECOND NODE AND NOT THE SEALER'S OWN PORT
+# Besu 26.10.0 has exactly one HTTP RPC listener, and --rpc-http-authentication-enabled
+# applies to that whole listener with only --rpc-http-api-method-no-auth as a per-namespace
+# escape. Blockscout needs TRACE/DEBUG on it and cannot attach a bearer JWT, so the sealer's
+# RPC cannot be simultaneously "public with the dangerous namespaces off" and "internal with
+# them on". Instead: the sealer keeps its full loopback-only listener for Blockscout and the
+# operators' SSH tunnel, and this container is the thing the internet is allowed to talk to.
+#
+# What this node deliberately does NOT have:
+#   - no --node-private-key-file  (Besu generates its own key in besu-rpc-data; giving it the
+#     sealer key would put a second holder of the validator identity on the network)
+#   - no --miner-enabled / validator mode  (it follows the chain, it does not seal it)
+#   - no QBFT, ADMIN, MINER, DEBUG, TXPOOL or TRACE namespaces
+#     QBFT matters most: this chain is n=1/f=0, so a single qbft_proposeValidatorVote from a
+#     stranger makes them a consensus validator. Namespaces that are not loaded cannot be
+#     called, which is a stronger guarantee than any firewall rule.
+#   - no host port. Caddy reaches http://besu-rpc:8545 over the compose network.
+
+services:
+  # Same trap that bit besu-data and sc-compilers: compose creates a named volume root-owned,
+  # Besu drops to uid 1000 and dies in a restart loop with
+  # "Failed to start Besu: Data directory is not writable: /var/lib/besu".
+  besu-rpc-perms:
+    image: alpine:3.20
+    container_name: lxon-besu-rpc-perms
+    restart: "no"
+    user: "0:0"
+    volumes:
+      - besu-rpc-data:/data
+    entrypoint: ["/bin/sh", "-c", "chown -R 1000:1000 /data && chmod 700 /data && echo 'besu-rpc-data ownership set for uid 1000'"]
+
+  besu-rpc:
+    image: hyperledger/besu:26.10.0
+    container_name: lxon-besu-rpc
+    restart: unless-stopped
+    stop_grace_period: 3m
+    user: "1000:1000"
+    depends_on:
+      besu-rpc-perms:
+        condition: service_completed_successfully
+      besu-sealer:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"
+    volumes:
+      - ./besu/genesis.qbft.json:/etc/besu/genesis.json:ro
+      - besu-rpc-data:/var/lib/besu
+    # The image entrypoint is besu-entry.sh, which already execs besu with these args —
+    # passing a leading "besu" here fails with "Unmatched argument at index 0: 'besu'".
+    command:
+      - --data-path=/var/lib/besu
+      - --genesis-file=/etc/besu/genesis.json
+      # Full sync from genesis; on a chain this size it takes seconds, and it means the
+      # node can be destroyed and rebuilt without a snapshot.
+      - --sync-mode=FULL
+      # enode://<sealer-pubkey>@<ip>:30303 — written into .env by enable-public-rpc.sh
+      # after resolving besu-sealer's current address on the compose network.
+      - --bootnodes=${LXON_SEALER_ENODE:?set LXON_SEALER_ENODE in .env}
+      - --p2p-port=30303
+      - --max-peers=50
+      # Keep using the bootnode instead of falling back to DNS discovery after the first
+      # handshake; on a QBFT/POA chain this is what makes a single-peer network recoverable.
+      # (Besu logs "--sync-min-peers is ignored in FULL sync-mode", so that flag is not here.)
+      - --poa-discovery-retry-bootnodes=true
+      - --rpc-http-enabled=true
+      - --rpc-http-host=0.0.0.0
+      - --rpc-http-port=8545
+      - --rpc-http-api=ETH,NET,WEB3
+      - --rpc-ws-enabled=true
+      - --rpc-ws-host=0.0.0.0
+      - --rpc-ws-port=8546
+      - --rpc-ws-api=ETH,NET,WEB3
+      # Pinned, not wildcard: this is the DNS-rebinding defence. Caddy forwards the original
+      # Host header, so the public name has to be in here.
+      - --host-allowlist=besu-rpc,localhost,127.0.0.1,${RPC_DOMAIN:-localhost}
+      - --rpc-http-cors-origins=${RPC_CORS_ORIGINS:-*}
+      - --revert-reason-enabled
+      - --min-gas-price=0
+      - --tx-pool-min-gas-price=0
+      - --logging=INFO
+    healthcheck:
+      # Same trick as the sealer: the image has no curl/wget, so probe the socket with bash.
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8545'"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    # No `ports:` at all. Anything reachable from outside must go through Caddy on 443.
+
+  caddy:
+    environment:
+      # {$RPC_DOMAIN} in the imported site file. The file itself only exists once
+      # enable-public-rpc.sh copies it into ./caddy/sites-enabled/.
+      RPC_DOMAIN: ${RPC_DOMAIN:?set RPC_DOMAIN in .env}
+    volumes:
+      - ./caddy/sites-enabled/02-rpc.caddy:/etc/caddy/sites-enabled/02-rpc.caddy:ro
+
+  blockscout-backend:
+    environment:
+      # Now there IS a public RPC worth advertising, so the explorer's wallet plumbing can
+      # point at it instead of the empty string left by enable-https.sh.
+      JSON_RPC: ${RPC_PUBLIC_URL:-}
+
+volumes:
+  besu-rpc-data:

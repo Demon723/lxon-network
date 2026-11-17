@@ -1,0 +1,41 @@
+{
+  "wallet": "0x7999b8C0662FE6aE3d82Ac6988718189E66f9B4b",
+  "token": "LXON",
+  "tokenAddress": "0xc0177883C0c662870855660495C697385FE040f5",
+  "balance": "2000000000.0",
+  "rawBalance": "2000000000000000",
+  "blockNumber": 14630,
+  "timestamp": "2026-10-06T21:54:56.000Z",
+  "message": "I own 2000000000.0 LXON in wallet 0x7999b8C0662FE6aE3d82Ac6988718189E66f9B4b at block 14630",
+  "signature": "0x23bd2731bfc5c991d43be9637b418a886aa3a7c28e813939e5754b13f0166a1d30ee5106f69360d5c2224048849f85e5a1ecb97270966c145a35f88b8492c6841b",
+  "eip712": {
+    "domain": {
+      "name": "LXON Balance Proof",
+      "version": "1",
+      "chainId": 724,
+      "verifyingContract": "0xc0177883C0c662870855660495C697385FE040f5"
+    },
+    "types": {
+      "BalanceProof": [
+        {
+          "name": "wallet",
+          "type": "address"
+        },
+        {
+          "name": "balance",
+          "type": "uint256"
+        },
+        {
+          "name": "blockNumber",
+          "type": "uint256"
+        }
+      ]
+    },
+    "value": {
+      "wallet": "0x7999b8C0662FE6aE3d82Ac6988718189E66f9B4b",
+      "balance": "2000000000000000",
+      "blockNumber": 14630
+    },
+    "signature": "0xfa959bd5083d05fb803410f701cfb2a2bb19397e3f3bd124bae8b7222a9718d10728218ef12181282481269618f5565259dedcb182b9ed5403eefd3d576d9c461b"
+  }
+}

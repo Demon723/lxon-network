@@ -1,0 +1,21 @@
+[package]
+name = "storage"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+rocksdb.workspace = true
+parking_lot.workspace = true
+bincode.workspace = true
+crypto-pqc = { path = "../crypto-pqc" }
+
+[dev-dependencies]
+tempfile.workspace = true
+tokio-test = "0.4"

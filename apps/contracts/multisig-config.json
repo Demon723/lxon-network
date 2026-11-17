@@ -1,0 +1,164 @@
+{
+  "mainGovernance": {
+    "name": "LXON Main Governance Multi-Sig",
+    "description": "Primary governance multi-sig for LXON protocol operations",
+    "threshold": 3,
+    "totalOwners": 5,
+    "timelock": 604800,
+    "timelockDays": 7,
+    "owners": [
+      {
+        "id": 1,
+        "name": "Owner 1 - REPLACE WITH REAL NAME",
+        "address": "0x0000000000000000000000000000000000000000",
+        "role": "Primary",
+        "hardwareWallet": true,
+        "location": "REPLACE WITH GEOGRAPHIC LOCATION",
+        "contact": "REPLACE WITH CONTACT INFO"
+      },
+      {
+        "id": 2,
+        "name": "Owner 2 - REPLACE WITH REAL NAME",
+        "address": "0x0000000000000000000000000000000000000000",
+        "role": "Primary",
+        "hardwareWallet": true,
+        "location": "REPLACE WITH GEOGRAPHIC LOCATION",
+        "contact": "REPLACE WITH CONTACT INFO"
+      },
+      {
+        "id": 3,
+        "name": "Owner 3 - REPLACE WITH REAL NAME",
+        "address": "0x0000000000000000000000000000000000000000",
+        "role": "Primary",
+        "hardwareWallet": true,
+        "location": "REPLACE WITH GEOGRAPHIC LOCATION",
+        "contact": "REPLACE WITH CONTACT INFO"
+      },
+      {
+        "id": 4,
+        "name": "Owner 4 - REPLACE WITH REAL NAME",
+        "address": "0x0000000000000000000000000000000000000000",
+        "role": "Primary",
+        "hardwareWallet": true,
+        "location": "REPLACE WITH GEOGRAPHIC LOCATION",
+        "contact": "REPLACE WITH CONTACT INFO"
+      },
+      {
+        "id": 5,
+        "name": "Owner 5 - REPLACE WITH REAL NAME",
+        "address": "0x0000000000000000000000000000000000000000",
+        "role": "Primary",
+        "hardwareWallet": true,
+        "location": "REPLACE WITH GEOGRAPHIC LOCATION",
+        "contact": "REPLACE WITH CONTACT INFO"
+      }
+    ],
+    "responsibilities": [
+      "Protocol upgrades and parameter changes",
+      "Treasury management and fund allocation",
+      "Governance proposal execution",
+      "Emergency response coordination",
+      "Strategic decision making"
+    ],
+    "securityRequirements": [
+      "All owners must use hardware wallets",
+      "Geographic distribution of owners",
+      "Regular key rotation (quarterly)",
+      "Secure communication channels",
+      "Documented decision-making process"
+    ]
+  },
+  "emergencyGovernance": {
+    "name": "LXON Emergency Multi-Sig",
+    "description": "Emergency multi-sig for critical security incidents only",
+    "threshold": 2,
+    "totalOwners": 3,
+    "timelock": 86400,
+    "timelockDays": 1,
+    "owners": [
+      {
+        "id": 1,
+        "name": "Emergency Owner 1 - REPLACE WITH REAL NAME",
+        "address": "0x0000000000000000000000000000000000000000",
+        "role": "Emergency",
+        "hardwareWallet": true,
+        "location": "REPLACE WITH GEOGRAPHIC LOCATION",
+        "contact": "REPLACE WITH CONTACT INFO"
+      },
+      {
+        "id": 2,
+        "name": "Emergency Owner 2 - REPLACE WITH REAL NAME",
+        "address": "0x0000000000000000000000000000000000000000",
+        "role": "Emergency",
+        "hardwareWallet": true,
+        "location": "REPLACE WITH GEOGRAPHIC LOCATION",
+        "contact": "REPLACE WITH CONTACT INFO"
+      },
+      {
+        "id": 3,
+        "name": "Emergency Owner 3 - REPLACE WITH REAL NAME",
+        "address": "0x0000000000000000000000000000000000000000",
+        "role": "Emergency",
+        "hardwareWallet": true,
+        "location": "REPLACE WITH GEOGRAPHIC LOCATION",
+        "contact": "REPLACE WITH CONTACT INFO"
+      }
+    ],
+    "responsibilities": [
+      "Critical vulnerability response",
+      "Security incident management",
+      "Protocol emergency pause",
+      "Time-sensitive security actions",
+      "Coordination with main governance"
+    ],
+    "securityRequirements": [
+      "24/7 availability for emergencies",
+      "Separate from main governance owners",
+      "Rapid response protocols",
+      "Emergency communication channels",
+      "Quarterly emergency drills"
+    ],
+    "activationCriteria": [
+      "Critical security vulnerabilities",
+      "Active exploits or attacks",
+      "Protocol-threatening events",
+      "Time-sensitive security incidents",
+      "With main governance approval"
+    ]
+  },
+  "deploymentNotes": {
+    "mainnet": {
+      "network": "Ethereum Mainnet",
+      "chainId": 1,
+      "requirements": [
+        "Complete security audit",
+        "All owner addresses configured",
+        "Hardware wallets distributed",
+        "Legal review completed",
+        "Emergency procedures tested"
+      ]
+    },
+    "testnet": {
+      "network": "Sepolia/Holesky",
+      "chainId": 11155111,
+      "requirements": [
+        "Owner addresses can be placeholders",
+        "Test configuration and procedures",
+        "Verify multi-sig functionality",
+        "Test emergency procedures"
+      ]
+    }
+  },
+  "nextSteps": [
+    "Replace all placeholder addresses with real owner addresses",
+    "Select 5 trusted individuals for main governance",
+    "Select 3 trusted individuals for emergency governance",
+    "Ensure geographic distribution of owners",
+    "Set up hardware wallets for all owners",
+    "Create secure communication channels",
+    "Document owner responsibilities and procedures",
+    "Test multi-sig on testnet before mainnet",
+    "Conduct emergency response drill",
+    "Update .env file with deployed addresses"
+  ]
+}

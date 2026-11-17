@@ -1,0 +1,22 @@
+# TLS front for the read-only RPC. Installed only once rpc.lxon.in actually resolves to this
+# instance -- expose-rpc.sh measures the A record and picks between this and rpc.http.caddy.
+rpc.lxon.in {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:9545 {
+		health_uri /
+		health_interval 15s
+		health_timeout 5s
+	}
+	log {
+		output file /var/log/caddy/rpc-lxon-in.access.log {
+			roll_size 10MiB
+			roll_keep 5
+		}
+		format json
+	}
+}
+
+# HTTP exists so Let's Encrypt can complete HTTP-01 and so browsers are redirected.
+http://rpc.lxon.in {
+	redir https://rpc.lxon.in{uri} permanent
+}

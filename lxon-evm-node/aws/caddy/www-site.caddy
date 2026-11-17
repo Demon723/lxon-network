@@ -1,0 +1,291 @@
+# The www site. enable-www.sh copies this to /opt/lxon/caddy/sites-enabled/03-www.caddy; the base
+# Caddyfile pulls sites-enabled in with a top-level `import`, so while this file is absent Caddy
+# never mentions www and never asks Let's Encrypt for a certificate for it.
+#
+# WHAT IT DOES, as of 2026-11-01: www.lxon.in IS the LXON website — one address per page, served
+# out of /data/ui: / is the landing page, /app the wallet view, /swap the DEX page, /assets/* the
+# brand art, /swap/price.json the USD feed. Every other path that is not a real file 308s to the
+# explorer with path and query intact, so a pasted https://www.lxon.in/tx/0xabc... still lands on
+# the transaction and not on a 404.
+#
+# Three earlier shapes, for the record, because each one is a trap that has already been stepped in
+# once. From 2026-10-22 it was redirect-only, which is what put a permanent redirect into browsers
+# that still carry it — see the CAUTION at the bottom. From 2026-10-29 it served the UI AND the
+# /ui/ prefix AND every *.html filename, which is how one page ended up published at four URLs and
+# four different home pages at once; the owner's call on 2026-11-01 was to consolidate to one site
+# with clean paths, so the /ui/ prefix and the .html filenames are now 301s, not routes.
+#
+# WHY /ui/ STILL APPEARS AT ALL: the explorer publishes these same files under explorer.lxon.in/ui/,
+# and listing and aggregator docs already carry /ui/assets/... URLs. Those keep being served here
+# rather than redirected across hosts. The pages themselves stopped linking to /ui/ on 2026-11-01 —
+# they link to /, /app and /swap, which resolve identically on either host.
+#
+# WHY handle IS USED RATHER THAN handle_path: handle_path strips the matched prefix before its
+# handlers run, so `handle_path /assets/*` with `root * /data/ui` would look for /data/ui/<file> and
+# never find /data/ui/assets/<file>. That was the defect in the 03-www.caddy.new attempt left in
+# sites-enabled on 2026-10-28 — every asset, /app.js and /index.html route in it 404'd or fell back
+# to the index. So each block here names its root and keeps its prefix, and the two places that do
+# strip — /ui/assets/* and /swap/price.json — say so with an explicit `uri strip_prefix`.
+#
+# WHY A TLS SITE AND NOT A PLAIN :80 REDIRECT: the explorer sends
+#   Strict-Transport-Security: max-age=31536000; includeSubDomains
+# and includeSubDomains covers every *.lxon.in for any browser that has already visited
+# explorer.lxon.in. Those browsers rewrite http://www.lxon.in to https before they resolve it, so
+# an HTTP-only redirect would never be reached by exactly the audience that matters. www needs a
+# valid certificate of its own.
+#
+# The address is {$WWW_DOMAIN} with a real default. Two reasons: the env var would have to reach the
+# caddy container through docker-compose, and adding a variable there means recreating the service —
+# a reload is zero-downtime, a recreate is not. And the file's existence is already the switch, so a
+# default cannot accidentally turn anything on. The 127.0.0.1 form is kept as the documented escape
+# and as the way to test this file without touching production: set WWW_DOMAIN=127.0.0.1 and Caddy
+# binds an IP-address site (internal CA, no ACME attempts), which is the same protection
+# rpc-site.caddy relies on.
+#
+# DNS PREREQUISITE, and the history of it: a site block for a hostname whose A record points
+# somewhere else cannot complete HTTP-01, so installing this file before the record moves buys
+# nothing but failing ACME orders and a share of Let's Encrypt's 30-failed-validations-per-hour
+# budget. www.lxon.in used to resolve to 52.3.226.228 (an AWS address that is not this account's);
+# as of 2026-10-29 it resolves to this instance's EIP 13.62.37.246 from the system resolver, 8.8.8.8,
+# 9.9.9.9 and 1.0.0.1, so the gate in enable-www.sh now passes and the certificate is issued. The
+# apex lxon.in still has NO A record and is not served by this file.
+
+{$WWW_DOMAIN:www.lxon.in} {
+	encode zstd gzip
+
+	# Security headers on responses that go to browsers. Identical set to the explorer's, including
+	# no wildcard in Content-Security-Policy: this origin talks only to itself.
+	#
+	# The last line is `-X-Powered-By`, NOT `delete "X-Powered-By"`. Inside a `header` block a field
+	# prefixed with `-` is deleted; `delete` is only a keyword in the three-argument form used
+	# outside a block. Written as `delete "X-Powered-By"` Caddy parses it as "set a header named
+	# delete to the value X-Powered-By" and answers every request with `delete: X-Powered-By` —
+	# which is what the explorer's own Caddyfile line 32 does, measurably, in production. Copied
+	# here once already; do not copy it again.
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-X-Powered-By
+	}
+
+	# Dotfiles and macOS AppleDouble sidecars, refused before anything else can serve them.
+	# Twelve `._*` files were live in /data/ui and publicly served until 2026-10-29: @static's
+	# `*.html` matches `._landing-light.html`, so a 163-byte binary com.apple.provenance blob was
+	# answered as text/html. They are deleted from the volume too; this matcher is what stops the
+	# next copy from re-publishing them, whatever tool made them (measured: this repo's own
+	# cp -R + bsdtar path does not — see the note in enable-ui.sh).
+	#
+	# FIRST among the handles on purpose: Caddy's handle blocks are mutually exclusive and
+	# evaluated in written order, so after `handle_path /ui/*` a /ui/._name would already be served.
+	# `/.*` is a literal dot then a wildcard (Caddy path matchers are globs, not regexes), so it
+	# matches /.hidden and not /anything.
+	@junk path /.* */._*
+	handle @junk {
+		respond 404
+	}
+
+	# CORS for the token list ONLY, added 2026-10-31 and placed ahead of @static on purpose: handles
+	# are mutually exclusive and evaluated in written order, and @static already matches *.json, so a
+	# rule after it could never run.
+	#
+	# WHY: tokenlists.org validates a submitted list by fetching it from the visitor's browser, and
+	# so do several DEX front-ends. Without an Access-Control-Allow-Origin header the fetch fails in
+	# the page even though curl and a browser address bar both return the file — which is the exact
+	# shape of failure this project cannot see coming, because everything about the list looks fine
+	# from the server side. It is scoped to this one path rather than @static so no HTML page on this
+	# origin becomes cross-origin readable.
+	#
+	# Applying it is a production write: enable-www.sh copies this file to
+	# /opt/lxon/caddy/sites-enabled/03-www.caddy and reloads caddy. RUN on 2026-10-31 — measured
+	# after: `access-control-allow-origin: *` on https://www.lxon.in/lxon-token-list.json, once, with
+	# content-length 2227 unchanged, and every other route on both hostnames answering exactly as it
+	# did before the reload. Note that explorer.lxon.in/ui/lxon-token-list.json still sends NO ACAO:
+	# this handle is scoped to www's own path, so if a listing is ever filed against the explorer URL
+	# it needs the same rule in ui/ui-route.caddy.
+	@tokenlist path /lxon-token-list.json
+	handle @tokenlist {
+		root * /data/ui
+		file_server {
+			index lxon-token-list.json
+		}
+		header Access-Control-Allow-Origin "*"
+		header Cache-Control "public, max-age=300"
+	}
+
+	# ── one URL per page ─────────────────────────────────────────────────────────────────────
+	#
+	# Before 2026-11-01 this site answered the SAME page at up to four addresses each — /,
+	# /landing-light.html, /ui/ and /ui/landing-light.html — and FOUR different home pages were
+	# published at all: landing-light.html (the one kept), landing.html, index.html and
+	# project-website.html. Measured, and the reason the site read as "four or five links to LXON"
+	# instead of one website. The owner chose landing-light.html as the home page and these static
+	# pages as the site of record, so the public surface is now:
+	#
+	#   /              landing
+	#   /app           wallet view
+	#   /swap          the DEX page
+	#   /assets/*      the brand art
+	#   /swap/price.json  the USD feed — see the note on it below
+	#
+	# and every other former address 301s to its canonical one rather than serving a second copy.
+	# 301 and not 308: these are page moves, GET-only, and a permanent redirect is what collapses a
+	# shared link and a search result onto one URL. The cross-host redirect at the bottom is a
+	# different case; read the caching warning there before changing any of these codes.
+	#
+	# ORDER IS LOAD-BEARING. handle blocks are mutually exclusive and evaluated as written, so the
+	# named-path blocks below must all sit ABOVE @static, which used to match *.html and would
+	# otherwise serve the retired filenames instead of redirecting them.
+	#
+	# AND SO IS THE `*` IN EVERY `redir * / 301` BELOW. Caddyfile's redir takes an OPTIONAL matcher
+	# first: `redir [<matcher>] <to> [<code>]`. Write `redir / 301` and the parser takes `/` as the
+	# matcher and `301` as the destination, so the compiled route is "when the path is /, reply 302
+	# with Location: 301" — which never matches the request it was written for, so the handle
+	# swallows the request and answers 200 with an empty body. `caddy validate` passes it, the
+	# config loads, and every retired URL silently serves nothing. Measured in the 2026-11-01
+	# rehearsal: 18 of 26 route assertions failed until the explicit `*` matcher was added, after
+	# which all 26 passed. Absolute targets (`redir https://host/ 301`) are unambiguous and need no
+	# `*`; relative ones always do.
+
+	# The wallet app at its clean path. Rewritten rather than renamed so the file on disk keeps the
+	# name enable-ui.sh publishes it under.
+	@app path /app
+	handle @app {
+		root * /data/ui
+		rewrite * /app-web.html
+		file_server
+		header Cache-Control "no-cache"
+	}
+
+	# The swap page at its clean path, from /data/ui — NOT from /data/swap. /data/swap holds a
+	# second copy of this same page (89,347 bytes, published alongside it since 2026-10-31), and
+	# serving that copy here would recreate the duplicate this block exists to remove.
+	@swap path /swap
+	handle @swap {
+		root * /data/ui
+		rewrite * /swap.html
+		file_server
+		header Cache-Control "no-cache"
+	}
+
+	# The USD feed, same-origin. This is the functional reason the pages used to be wired to the
+	# explorer host: explorer.lxon.in/swap/price.json answers 200 application/json but sends NO
+	# Access-Control-Allow-Origin, so a page on another origin cannot read it — and until this
+	# block existed, www.lxon.in/swap/price.json was a plain 404. landing-light.html already tries
+	# the relative "price.json" before "/swap/price.json", so serving the file here is what lets the
+	# landing page print a price without having to be published on the explorer. The file is written
+	# every 5 minutes into /data/swap/price.json by the root cron job /opt/lxon/price-updater.py
+	# (measured: updatedAt 2026-10-31T20:00:02Z), so max-age 120 keeps a browser from holding a
+	# figure past the next update. No CORS wildcard here: same-origin reads need none, and adding
+	# one would open the feed to every page on the internet.
+	@price path /swap/price.json
+	handle @price {
+		root * /data/swap
+		uri strip_prefix /swap
+		file_server
+		header Cache-Control "public, max-age=120"
+	}
+
+	# The retired filenames, each 301'd to the one URL that replaces it.
+	@to_home path /landing-light.html /landing.html /index.html /project-website.html /home
+	handle @to_home {
+		redir * / 301
+	}
+	@to_app path /app-web.html
+	handle @to_app {
+		redir * /app 301
+	}
+	@to_swap path /swap.html
+	handle @to_swap {
+		redir * /swap 301
+	}
+	# /explorer.html is a hand-built screen that imitates a block explorer while the real one is
+	# Blockscout on its own subdomain — two things claiming the same word, which is a link people
+	# click by mistake. The file stays in the bundle; the URL now goes to the explorer it imitates.
+	@to_explorer path /explorer.html
+	handle @to_explorer {
+		redir https://{$EXPLORER_DOMAIN}/ 301
+	}
+	# A trailing slash is the same page reached a second way.
+	@slash_app path /app/
+	handle @slash_app {
+		redir * /app 301
+	}
+	@slash_swap path /swap/
+	handle @slash_swap {
+		redir * /swap 301
+	}
+
+	# /ui/ is the explorer's prefix, not this site's, so it is no longer a place pages live.
+	# The art under it is still SERVED rather than redirected, because aggregator and listing docs
+	# already carry explorer.lxon.in/ui/assets/... URLs; a cross-host 301 would only move the
+	# problem somewhere neither host controls.
+	@ui_home path /ui /ui/ /ui/landing-light.html /ui/landing.html /ui/index.html /ui/project-website.html
+	handle @ui_home {
+		redir * / 301
+	}
+	@ui_app path /ui/app-web.html
+	handle @ui_app {
+		redir * /app 301
+	}
+	@ui_swap path /ui/swap.html
+	handle @ui_swap {
+		redir * /swap 301
+	}
+	@ui_explorer path /ui/explorer.html
+	handle @ui_explorer {
+		redir https://{$EXPLORER_DOMAIN}/ 301
+	}
+	@ui_assets path /ui/assets/*
+	handle @ui_assets {
+		root * /data/ui
+		uri strip_prefix /ui
+		file_server
+		header Cache-Control "public, max-age=604800"
+	}
+
+	# Sign-in URLs. These used to fall through to the catch-all at the bottom and be CACHED IN
+	# BROWSERS as a permanent redirect to an explorer 404 — /signin and /login are not explorer
+	# paths, and once a browser stores a 308 there is no server-side change that dislodges it.
+	# 302 is not cached, so the day the Next.js app is published on this host these URLs begin
+	# working for every visitor at once. They point at the home page because that is where the
+	# sign-in control actually is today.
+	@auth path /signin /signin/ /login /login/ /signup /signup/
+	handle @auth {
+		redir * / 302
+	}
+
+	# The home page, the art, and any other real file in the bundle. Matched by name and suffix
+	# rather than by probing the filesystem, so a path that does not exist here answers 404 instead
+	# of being quietly redirected to an explorer page that does not exist either.
+	#
+	# *.html is deliberately GONE from this matcher: it is the line that turned seven filenames into
+	# seven public URLs. /app.js stays because index.html still ships it, even though nothing links
+	# to that page any more.
+	@static path / /app.js /assets/* *.json *.css *.js *.png *.svg *.ico *.webmanifest
+	handle @static {
+		root * /data/ui
+		file_server {
+			index landing-light.html
+		}
+		header Cache-Control "no-cache"
+	}
+
+	# Everything else genuinely is an explorer URL: /tx/0x…, /address/0x…, /blocks, /api/…
+	# 308, permanent, path and query preserved by {uri}.
+	#
+	# CAUTION, learned for real: this site was redirect-only from 2026-10-22 to 2026-10-29, so every
+	# browser that visited / during that week cached a permanent redirect to the explorer and kept
+	# following it after / began serving the page here. A cached 301/308 cannot be undone from the
+	# server — only a hard reload or a cleared cache fixes it, per visitor. So keep this catch-all
+	# for paths that are truly and permanently the explorer's, and give anything that might move
+	# back a 302 instead. See @auth above.
+	handle {
+		redir https://{$EXPLORER_DOMAIN}{uri} 308
+	}
+
+	log {
+		format json
+	}
+}

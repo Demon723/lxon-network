@@ -1,0 +1,23 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.26;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+
+contract USDC is ERC20, Ownable, ReentrancyGuard {
+    event Mint(address indexed to, uint256 amount);
+    event Burn(address indexed from, uint256 amount);
+
+    constructor() ERC20("USD Coin", "USDC") Ownable(msg.sender) {}
+
+    function mint(address to, uint256 amount) external onlyOwner {
+        _mint(to, amount);
+        emit Mint(to, amount);
+    }
+
+    function burn(uint256 amount) external {
+        _burn(msg.sender, amount);
+        emit Burn(msg.sender, amount);
+    }
+}

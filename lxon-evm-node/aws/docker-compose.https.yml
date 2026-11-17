@@ -1,0 +1,75 @@
+name: lxon-evm
+
+# HTTPS overlay for the LXON explorer. Applied ON TOP of docker-compose.aws.yml:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.https.yml up -d
+#
+# Use aws/enable-https.sh rather than that command directly — it checks that the domain
+# actually resolves to this instance's EIP before touching anything, because Caddy cannot
+# finish a Let's Encrypt challenge against a host that does not point here, and applying
+# this overlay early takes the explorer down instead of securing it.
+#
+# What it does: puts Caddy in front on 443/80, moves the explorer ports to loopback only,
+# and rewrites the frontend's API coordinates to the single public HTTPS origin so the
+# browser never mixes http and https.
+
+services:
+  caddy:
+    image: caddy:2
+    container_name: lxon-caddy
+    restart: unless-stopped
+    stop_grace_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "3"
+    depends_on:
+      blockscout-frontend:
+        condition: service_started
+      blockscout-backend:
+        condition: service_started
+    environment:
+      # The Caddyfile references {$EXPLORER_DOMAIN}; Caddy reads it from the container env,
+      # which compose fills from /opt/lxon/.env at project root.
+      EXPLORER_DOMAIN: ${EXPLORER_DOMAIN:?set EXPLORER_DOMAIN in .env}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    ports:
+      - "80:80"      # ACME HTTP-01 + the redirect to HTTPS
+      - "443:443"    # the only public entry point for the explorer
+
+  blockscout-frontend:
+    environment:
+      # One origin: the UI and the API are both served from https://<domain>, the API
+      # under /api. Port 443 is explicit because the image builds its API URL from
+      # host + port and would otherwise emit an :3000-style address.
+      NEXT_PUBLIC_API_HOST: ${EXPLORER_DOMAIN:?set EXPLORER_DOMAIN in .env}
+      NEXT_PUBLIC_API_PORT: "443"
+      NEXT_PUBLIC_API_PROTOCOL: "https"
+      NEXT_PUBLIC_API_WEBSOCKET_PROTOCOL: "wss"
+      NEXT_PUBLIC_APP_HOST: ${EXPLORER_DOMAIN:?}
+      NEXT_PUBLIC_APP_PORT: "443"
+      NEXT_PUBLIC_APP_PROTOCOL: "https"
+    ports: !override
+      # Caddy reaches this over the compose network; browsers must not.
+      # !override is load-bearing, not cosmetic: compose merges YAML *sequences by appending*,
+      # so a plain `ports:` here would leave the base stack's "3000:3000" in place AND add this
+      # mapping — the container then tries to bind 0.0.0.0:3000 and 127.0.0.1:3000 and fails with
+      # "failed to bind host port 127.0.0.1:3000/tcp: address already in use", which is what took
+      # the explorer down on 2026-10-20. Maps (environment) merge; lists replace only if you say so.
+      - "127.0.0.1:3000:3000"
+
+  blockscout-backend:
+    environment:
+      # Blockscout uses this to render "network RPC" hints; keep it empty until the RPC
+      # gets its own authenticated HTTPS endpoint (it is loopback-only since 2026-10-20).
+      JSON_RPC: ""
+    ports: !override
+      - "127.0.0.1:4000:4000"
+
+volumes:
+  caddy-data:
+  caddy-config:

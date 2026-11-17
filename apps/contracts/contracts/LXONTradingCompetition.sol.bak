@@ -1,0 +1,343 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.26;
+
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+
+/**
+ * @title LXONTradingCompetition
+ * @dev Trading competition contract to reward high-volume traders with LXON tokens
+ * @notice Rewards participants based on their trading volume in LXON pairs
+ */
+contract LXONTradingCompetition is Ownable, ReentrancyGuard {
+    using SafeERC20 for IERC20;
+
+    // State variables
+    IERC20 public rewardToken; // LXON token
+    IERC20 public tradingToken; // Token being traded (e.g., LXON)
+    
+    uint256 public competitionStartTime;
+    uint256 public competitionEndTime;
+    uint256 public totalRewardPool;
+    uint256 public totalVolumeTraded;
+    
+    // Competition settings
+    uint256 public constant COMPETITION_DURATION = 30 days; // 30-day competition
+    uint256 public constant MIN_TRADE_VOLUME = 1e6; // Minimum 1 LXON traded
+    uint256 public constant MAX_REWARD_POOL = 1000000 ether; // Max 1M LXON rewards
+    
+    // Participant data
+    struct Participant {
+        uint256 volumeTraded;
+        uint256 rewardClaimed;
+        bool hasClaimed;
+        uint256 lastTradeTime;
+    }
+    
+    mapping(address => Participant) public participants;
+    address[] public participantList;
+    
+    // Reward tiers
+    struct RewardTier {
+        uint256 minVolume;
+        uint256 rewardPercentage; // Percentage of reward pool (in basis points, 10000 = 100%)
+    }
+    
+    RewardTier[] public rewardTiers;
+    
+    // Events
+    event TradeRecorded(address indexed trader, uint256 volume, uint256 timestamp);
+    event CompetitionStarted(uint256 startTime, uint256 endTime, uint256 rewardPool);
+    event CompetitionEnded(uint256 totalVolume, uint256 totalParticipants);
+    event RewardClaimed(address indexed participant, uint256 amount, uint256 rank);
+    event RewardTierUpdated(uint256 tierIndex, uint256 minVolume, uint256 rewardPercentage);
+    
+    /**
+     * @dev Constructor to initialize the trading competition
+     * @param _rewardToken Address of the LXON token
+     * @param _tradingToken Address of the token being traded
+     * @param _rewardPool Total reward pool in LXON tokens
+     * @param _startTime When the competition starts
+     */
+    constructor(
+        address _rewardToken,
+        address _tradingToken,
+        uint256 _rewardPool,
+        uint256 _startTime
+    ) Ownable(msg.sender) {
+        require(_rewardToken != address(0), "Invalid reward token address");
+        require(_tradingToken != address(0), "Invalid trading token address");
+        require(_rewardPool > 0 && _rewardPool <= MAX_REWARD_POOL, "Invalid reward pool");
+        require(_startTime >= block.timestamp, "Invalid start time");
+        
+        rewardToken = IERC20(_rewardToken);
+        tradingToken = IERC20(_tradingToken);
+        totalRewardPool = _rewardPool;
+        competitionStartTime = _startTime;
+        competitionEndTime = _startTime + COMPETITION_DURATION;
+        
+        // Initialize reward tiers
+        _initializeRewardTiers();
+    }
+    
+    /**
+     * @dev Initialize reward tiers for the competition
+     */
+    function _initializeRewardTiers() internal {
+        // Tier 1: 10,000+ LXON traded - 40% of reward pool
+        rewardTiers.push(RewardTier(10000 * 1e6, 4000));
+        
+        // Tier 2: 5,000+ LXON traded - 25% of reward pool
+        rewardTiers.push(RewardTier(5000 * 1e6, 2500));
+        
+        // Tier 3: 1,000+ LXON traded - 20% of reward pool
+        rewardTiers.push(RewardTier(1000 * 1e6, 2000));
+        
+        // Tier 4: 500+ LXON traded - 10% of reward pool
+        rewardTiers.push(RewardTier(500 * 1e6, 1000));
+        
+        // Tier 5: 100+ LXON traded - 5% of reward pool
+        rewardTiers.push(RewardTier(100 * 1e6, 500));
+    }
+    
+    /**
+     * @dev Record a trade for a participant
+     * @param _trader Address of the trader
+     * @param _volume Volume of the trade
+     */
+    function recordTrade(address _trader, uint256 _volume) external onlyOwner {
+        require(block.timestamp >= competitionStartTime, "Competition not started");
+        require(block.timestamp < competitionEndTime, "Competition ended");
+        require(_volume >= MIN_TRADE_VOLUME, "Trade volume too small");
+        
+        Participant storage participant = participants[_trader];
+        
+        // Add new participant if first trade
+        if (participant.volumeTraded == 0) {
+            participantList.push(_trader);
+        }
+        
+        // Update participant's volume
+        participant.volumeTraded += _volume;
+        participant.lastTradeTime = block.timestamp;
+        
+        // Update total volume
+        totalVolumeTraded += _volume;
+        
+        emit TradeRecorded(_trader, _volume, block.timestamp);
+    }
+    
+    /**
+     * @dev Calculate reward for a participant based on their tier
+     * @param _participant Address of the participant
+     * @return Calculated reward amount
+     */
+    function calculateReward(address _participant) public view returns (uint256) {
+        Participant memory participant = participants[_participant];
+        
+        // Find the highest tier the participant qualifies for
+        uint256 rewardPercentage = 0;
+        
+        for (uint256 i = 0; i < rewardTiers.length; i++) {
+            if (participant.volumeTraded >= rewardTiers[i].minVolume) {
+                rewardPercentage = rewardTiers[i].rewardPercentage;
+            }
+        }
+        
+        // Calculate reward: (tier percentage * total reward pool) / (total participants in tier)
+        // Simplified: reward = (volume / total volume) * (tier percentage * total reward pool)
+        uint256 volumeShare = (participant.volumeTraded * 1e18) / totalVolumeTraded;
+        uint256 tierRewardPool = (totalRewardPool * rewardPercentage) / 10000;
+        uint256 reward = (volumeShare * tierRewardPool) / 1e18;
+        
+        return reward;
+    }
+    
+    /**
+     * @dev Claim reward for the caller
+     */
+    function claimReward() external nonReentrant {
+        require(block.timestamp >= competitionEndTime, "Competition not ended");
+        require(!participants[msg.sender].hasClaimed, "Already claimed");
+        require(participants[msg.sender].volumeTraded >= MIN_TRADE_VOLUME, "No eligible trades");
+        
+        uint256 reward = calculateReward(msg.sender);
+        require(reward > 0, "No reward available");
+        
+        participants[msg.sender].hasClaimed = true;
+        participants[msg.sender].rewardClaimed = reward;
+        
+        // Transfer reward to participant
+        uint256 contractBalance = rewardToken.balanceOf(address(this));
+        require(contractBalance >= reward, "Insufficient reward tokens");
+        
+        rewardToken.safeTransfer(msg.sender, reward);
+        
+        emit RewardClaimed(msg.sender, reward, _getParticipantRank(msg.sender));
+    }
+    
+    /**
+     * @dev Get participant rank based on volume
+     * @param _participant Address of the participant
+     * @return Rank of the participant
+     */
+    function _getParticipantRank(address _participant) internal view returns (uint256) {
+        uint256 participantVolume = participants[_participant].volumeTraded;
+        uint256 rank = 1;
+        
+        for (uint256 i = 0; i < participantList.length; i++) {
+            if (participants[participantList[i]].volumeTraded > participantVolume) {
+                rank++;
+            }
+        }
+        
+        return rank;
+    }
+    
+    /**
+     * @dev Get participant information
+     * @param _participant Address of the participant
+     * @return volumeTraded, rewardClaimed, hasClaimed, lastTradeTime, currentReward, rank
+     */
+    function getParticipantInfo(address _participant) external view returns (
+        uint256 volumeTraded,
+        uint256 rewardClaimed,
+        bool hasClaimed,
+        uint256 lastTradeTime,
+        uint256 currentReward,
+        uint256 rank
+    ) {
+        Participant memory participant = participants[_participant];
+        return (
+            participant.volumeTraded,
+            participant.rewardClaimed,
+            participant.hasClaimed,
+            participant.lastTradeTime,
+            calculateReward(_participant),
+            _getParticipantRank(_participant)
+        );
+    }
+    
+    /**
+     * @dev Get top traders by volume
+     * @param _limit Number of top traders to return
+     * @return Array of top trader addresses
+     */
+    function getTopTraders(uint256 _limit) external view returns (address[] memory) {
+        require(_limit > 0 && _limit <= participantList.length, "Invalid limit");
+        
+        // Create a copy of participant list to sort
+        address[] memory sortedList = new address[](participantList.length);
+        for (uint256 i = 0; i < participantList.length; i++) {
+            sortedList[i] = participantList[i];
+        }
+        
+        // Simple bubble sort by volume (descending)
+        for (uint256 i = 0; i < sortedList.length - 1; i++) {
+            for (uint256 j = 0; j < sortedList.length - i - 1; j++) {
+                if (participants[sortedList[j]].volumeTraded < participants[sortedList[j + 1]].volumeTraded) {
+                    address temp = sortedList[j];
+                    sortedList[j] = sortedList[j + 1];
+                    sortedList[j + 1] = temp;
+                }
+            }
+        }
+        
+        // Return top _limit traders
+        address[] memory topTraders = new address[](_limit);
+        for (uint256 i = 0; i < _limit; i++) {
+            topTraders[i] = sortedList[i];
+        }
+        
+        return topTraders;
+    }
+    
+    /**
+     * @dev Update reward tier (only owner)
+     * @param _tierIndex Index of the tier to update
+     * @param _minVolume New minimum volume for the tier
+     * @param _rewardPercentage New reward percentage for the tier
+     */
+    function updateRewardTier(uint256 _tierIndex, uint256 _minVolume, uint256 _rewardPercentage) external onlyOwner {
+        require(_tierIndex < rewardTiers.length, "Invalid tier index");
+        require(_rewardPercentage <= 10000, "Invalid reward percentage");
+        
+        rewardTiers[_tierIndex].minVolume = _minVolume;
+        rewardTiers[_tierIndex].rewardPercentage = _rewardPercentage;
+        
+        emit RewardTierUpdated(_tierIndex, _minVolume, _rewardPercentage);
+    }
+    
+    /**
+     * @dev Extend competition duration (only owner)
+     * @param _additionalDays Additional days to add
+     */
+    function extendCompetition(uint256 _additionalDays) external onlyOwner {
+        require(_additionalDays > 0 && _additionalDays <= 30, "Invalid extension");
+        require(block.timestamp < competitionEndTime, "Competition already ended");
+        
+        competitionEndTime += _additionalDays * 1 days;
+    }
+    
+    /**
+     * @dev Recover unclaimed rewards after competition ends (only owner)
+     */
+    function recoverUnclaimedRewards() external onlyOwner {
+        require(block.timestamp >= competitionEndTime + 30 days, "Too early to recover");
+        
+        uint256 unclaimedRewards = 0;
+        
+        for (uint256 i = 0; i < participantList.length; i++) {
+            if (!participants[participantList[i]].hasClaimed) {
+                unclaimedRewards += calculateReward(participantList[i]);
+            }
+        }
+        
+        require(unclaimedRewards > 0, "No unclaimed rewards");
+        
+        uint256 contractBalance = rewardToken.balanceOf(address(this));
+        require(contractBalance >= unclaimedRewards, "Insufficient balance");
+        
+        rewardToken.safeTransfer(owner(), unclaimedRewards);
+    }
+    
+    /**
+     * @dev Get contract information
+     * @return totalVolumeTraded, totalParticipants, competitionStartTime, competitionEndTime, totalRewardPool
+     */
+    function getContractInfo() external view returns (
+        uint256 _totalVolumeTraded,
+        uint256 _totalParticipants,
+        uint256 _competitionStartTime,
+        uint256 _competitionEndTime,
+        uint256 _totalRewardPool
+    ) {
+        return (
+            totalVolumeTraded,
+            participantList.length,
+            competitionStartTime,
+            competitionEndTime,
+            totalRewardPool
+        );
+    }
+    
+    /**
+     * @dev Get reward tier information
+     * @param _tierIndex Index of the tier
+     * @return minVolume, rewardPercentage
+     */
+    function getRewardTier(uint256 _tierIndex) external view returns (uint256 minVolume, uint256 rewardPercentage) {
+        require(_tierIndex < rewardTiers.length, "Invalid tier index");
+        return (rewardTiers[_tierIndex].minVolume, rewardTiers[_tierIndex].rewardPercentage);
+    }
+    
+    /**
+     * @dev Get number of reward tiers
+     * @return Number of reward tiers
+     */
+    function getRewardTierCount() external view returns (uint256) {
+        return rewardTiers.length;
+    }
+}

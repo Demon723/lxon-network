@@ -1,0 +1,32 @@
+name: lxon-evm
+
+# Overlay that makes the www redirect visible to the running Caddy container.
+#
+# Applied on top of the same three files the RPC overlay uses:
+#   docker compose -f docker-compose.yml -f docker-compose.https.yml -f docker-compose.rpc.yml \
+#                  -f docker-compose.www.yml up -d caddy
+#
+# Use enable-www.sh instead of typing that: it refuses unless www.lxon.in already resolves to this
+# instance's EIP, and it validates the combined Caddyfile before recreating anything.
+#
+# All this overlay does is bind-mount the one site file. Compose MERGES volumes by appending, and
+# /etc/caddy/sites-enabled/03-www.caddy is a different target from the 02-rpc.caddy file the RPC
+# overlay mounts, so the two coexist — which is exactly why this mounts a file and not the
+# directory: a directory mount here would shadow the RPC site (or collide with it).
+#
+# No environment changes, on purpose. The site address comes from {$WWW_DOMAIN:www.lxon.in} with a
+# working default, because adding a variable would have to be injected here and that would mean
+# recreating the service for a value that never changes. Recreating Caddy costs a few seconds of
+# TLS blip; it does NOT re-issue the explorer certificate, because that lives in the caddy-data
+# volume which this overlay leaves alone. That matters: Let's Encrypt allows only 5 duplicate
+# certificates per week per set of names.
+#
+# ORDERING TRAP: docker creates a missing bind-mount SOURCE as an empty *directory*. If this overlay
+# is applied before 03-www.caddy exists on the host, the container ends up with a directory called
+# 03-www.caddy inside sites-enabled, and the `import .../*.caddy` glob then tries to read it. So
+# enable-www.sh always writes the file first and recreates second.
+
+services:
+  caddy:
+    volumes:
+      - ./caddy/sites-enabled/03-www.caddy:/etc/caddy/sites-enabled/03-www.caddy:ro

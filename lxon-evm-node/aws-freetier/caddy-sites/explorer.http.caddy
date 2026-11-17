@@ -1,0 +1,22 @@
+# Interim plain-HTTP form of the explorer notice, for the window in which the hostname does not
+# resolve here. Same routing, no certificate.
+http://explorer.lxon.in {
+	root * /opt/lxon/www
+	encode zstd gzip
+
+	handle /assets/* {
+		file_server
+	}
+	handle {
+		rewrite * /explorer-offline/index.html
+		file_server
+	}
+
+	log {
+		output file /var/log/caddy/explorer-lxon-in.access.log {
+			roll_size 10MiB
+			roll_keep 3
+		}
+		format json
+	}
+}

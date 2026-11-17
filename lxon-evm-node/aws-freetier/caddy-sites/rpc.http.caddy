@@ -1,0 +1,22 @@
+# INTERIM — plain HTTP, no certificate. Installed only while rpc.lxon.in does NOT resolve to this
+# instance; Let's Encrypt validates the hostname, so with DNS elsewhere no cert can ever issue and
+# an HTTPS site here would just log ACME errors forever. Re-running expose-rpc.sh after the A
+# record moves swaps this fragment for rpc.https.caddy by itself.
+http://rpc.lxon.in {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:9545 {
+		health_uri /
+		health_interval 15s
+		health_timeout 5s
+	}
+	log {
+		output file /var/log/caddy/rpc-lxon-in.access.log {
+			roll_size 10MiB
+			roll_keep 5
+		}
+		format json
+	}
+}
+
+# A request arriving with no matching hostname is handled by catchall.caddy, installed with every
+# front in both modes. Do not add a `:80 {}` block here.

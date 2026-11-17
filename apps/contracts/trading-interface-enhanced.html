@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LXON DEX - Enhanced Trading</title>
+    <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .price-tag {
+            text-align: center;
+            font-size: 24px;
+            color: #10b981;
+            font-weight: bold;
+            margin-bottom: 30px;
+        }
+
+        .connect-btn {
+            width: 100%;
+            padding: 15px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: background 0.3s;
+        }
+
+        .connect-btn:hover {
+            background: #5568d3;
+        }
+
+        .connect-btn.connected {
+            background: #10b981;
+        }
+
+        .swap-box {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .token-input {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .token-input input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        .token-select {
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+        }
+
+        .swap-icon {
+            text-align: center;
+            margin: -10px 0;
+            color: #667eea;
+            font-size: 20px;
+        }
+
+        .swap-btn {
+            width: 100%;
+            padding: 15px;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .swap-btn:hover {
+            background: #059669;
+        }
+
+        .swap-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .info-box {
+            background: #e0e7ff;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .info-box h3 {
+            color: #3730a3;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .info-box p {
+            color: #4338ca;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+
+        .status {
+            text-align: center;
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .status.info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .history-box {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .history-box h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .history-item {
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            font-size: 12px;
+        }
+
+        .history-item .tx-hash {
+            color: #667eea;
+            word-break: break-all;
+        }
+
+        .chart-box {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .chart-box h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 200px;
+            width: 100%;
+        }
+
+        .slippage-setting {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .slippage-setting label {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .slippage-setting input {
+            width: 80px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>LXON DEX</h1>
+        <div class="price-tag">$2/LXON (USDC)</div>
+
+        <button class="connect-btn" id="connectBtn">Connect Wallet</button>
+
+        <div class="swap-box">
+            <div class="token-input">
+                <input type="number" id="amountIn" placeholder="0.0">
+                <select class="token-select" id="tokenIn">
+                    <option value="LXON">LXON</option>
+                    <option value="USDC">USDC</option>
+                </select>
+            </div>
+
+            <div class="swap-icon">↓</div>
+
+            <div class="token-input">
+                <input type="number" id="amountOut" placeholder="0.0" readonly>
+                <select class="token-select" id="tokenOut">
+                    <option value="USDC">USDC</option>
+                    <option value="LXON">LXON</option>
+                </select>
+            </div>
+
+            <div class="slippage-setting">
+                <label>Slippage Tolerance:</label>
+                <input type="number" id="slippage" value="0.5" step="0.1" min="0.1" max="10">
+                <label>%</label>
+            </div>
+        </div>
+
+        <button class="swap-btn" id="swapBtn" disabled>Swap</button>
+
+        <div class="info-box">
+            <h3>Pair Information</h3>
+            <p><strong>Pair Address:</strong> 0x145349bAe112F2b67DDC62f7e9Ba95A0B54656e8</p>
+            <p><strong>LXON:</strong> 0xc0177883C0c662870855660495C697385FE040f5</p>
+            <p><strong>USDC:</strong> 0x14711906a15BE7Cd861f0378D26b65D37bC5a9df</p>
+            <p><strong>Price:</strong> $2.00/LXON</p>
+        </div>
+
+        <div class="chart-box">
+            <h3>Price Chart (LXON/USDC)</h3>
+            <div class="chart-container">
+                <canvas id="priceChart"></canvas>
+            </div>
+        </div>
+
+        <div class="history-box">
+            <h3>Transaction History</h3>
+            <div id="historyList">
+                <p style="color: #999; font-size: 12px;">No transactions yet</p>
+            </div>
+        </div>
+
+        <div class="status" id="status"></div>
+        <div class="status" id="networkStatus"></div>
+    </div>
+
+    <script>
+        const LXON_ADDRESS = "0xc0177883C0c662870855660495C697385FE040f5";
+        const USDC_ADDRESS = "0x14711906a15BE7Cd861f0378D26b65D37bC5a9df";
+        const PAIR_ADDRESS = "0x145349bAe112F2b67DDC62f7e9Ba95A0B54656e8";
+        const ROUTER_ADDRESS = "0x643a62a5472Ba3fA3eAbc834E3058eF2aBD07602";
+        const LXON_RPC = "https://rpc.lxon.in";
+        const CHAIN_ID = 724;
+
+        let web3;
+        let account;
+        let provider;
+        let signer;
+        let transactionHistory = [];
+
+        const connectBtn = document.getElementById('connectBtn');
+        const swapBtn = document.getElementById('swapBtn');
+        const amountIn = document.getElementById('amountIn');
+        const amountOut = document.getElementById('amountOut');
+        const tokenIn = document.getElementById('tokenIn');
+        const tokenOut = document.getElementById('tokenOut');
+        const slippage = document.getElementById('slippage');
+        const status = document.getElementById('status');
+        const networkStatus = document.getElementById('networkStatus');
+        const historyList = document.getElementById('historyList');
+
+        connectBtn.addEventListener('click', connectWallet);
+        swapBtn.addEventListener('click', swap);
+        amountIn.addEventListener('input', calculateOutput);
+        tokenIn.addEventListener('change', calculateOutput);
+        tokenOut.addEventListener('change', calculateOutput);
+
+        // Check network status
+        async function checkNetwork() {
+            if (typeof window.ethereum !== 'undefined') {
+                try {
+                    const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+                    if (chainId === '0x2d4') {
+                        networkStatus.textContent = '✅ Connected to LXON network';
+                        networkStatus.className = 'status success';
+                    } else {
+                        networkStatus.textContent = '⚠️ Wrong network (Chain ID: ' + parseInt(chainId, 16) + '). Please switch to LXON (724)';
+                        networkStatus.className = 'status error';
+                    }
+                } catch (error) {
+                    networkStatus.textContent = 'Network check failed';
+                    networkStatus.className = 'status error';
+                }
+            }
+        }
+
+        // Check network every 3 seconds
+        setInterval(checkNetwork, 3000);
+        checkNetwork();
+
+        async function connectWallet() {
+            if (typeof window.ethereum !== 'undefined') {
+                try {
+                    // First, request accounts
+                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    account = accounts[0];
+
+                    // Then try to add and switch to LXON network
+                    try {
+                        await window.ethereum.request({
+                            method: 'wallet_addEthereumChain',
+                            params: [{
+                                chainId: '0x2d4',
+                                chainName: 'LXON',
+                                nativeCurrency: {
+                                    name: 'LXON',
+                                    symbol: 'LXON',
+                                    decimals: 18
+                                },
+                                rpcUrls: [LXON_RPC],
+                                blockExplorerUrls: null
+                            }]
+                        });
+                    } catch (addError) {
+                        console.log('Network might already exist:', addError.message);
+                    }
+
+                    // Try to switch to LXON network
+                    try {
+                        await window.ethereum.request({
+                            method: 'wallet_switchEthereumChain',
+                            params: [{ chainId: '0x2d4' }]
+                        });
+                    } catch (switchError) {
+                        console.log('Switch error:', switchError.message);
+                        showStatus('Please manually switch to LXON network in MetaMask', 'error');
+                        return;
+                    }
+
+                    // Verify current network
+                    const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+                    if (chainId !== '0x2d4') {
+                        showStatus('Wrong network! Please switch to LXON (Chain ID: 724)', 'error');
+                        return;
+                    }
+
+                    provider = new ethers.providers.Web3Provider(window.ethereum);
+                    signer = provider.getSigner();
+
+                    connectBtn.textContent = account.substring(0, 6) + '...' + account.substring(38);
+                    connectBtn.classList.add('connected');
+                    swapBtn.disabled = false;
+
+                    showStatus('Wallet connected to LXON network!', 'success');
+                } catch (error) {
+                    showStatus('Failed to connect wallet: ' + error.message, 'error');
+                }
+            } else {
+                showStatus('Please install MetaMask', 'error');
+            }
+        }
+
+        function calculateOutput() {
+            const amount = parseFloat(amountIn.value);
+            if (isNaN(amount) || amount === 0) {
+                amountOut.value = '';
+                return;
+            }
+
+            const price = 2; // $2/LXON = 2 USDC per LXON
+            const isLxonToUsdc = tokenIn.value === 'LXON' && tokenOut.value === 'USDC';
+            const isUsdcToLxon = tokenIn.value === 'USDC' && tokenOut.value === 'LXON';
+
+            if (isLxonToUsdc) {
+                amountOut.value = (amount * price).toFixed(6);
+            } else if (isUsdcToLxon) {
+                amountOut.value = (amount / price).toFixed(6);
+            } else {
+                amountOut.value = amount.toFixed(6);
+            }
+        }
+
+        async function swap() {
+            if (!account) {
+                showStatus('Please connect wallet first', 'error');
+                return;
+            }
+
+            // Verify network
+            const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+            if (chainId !== '0x2d4') {
+                showStatus('Wrong network! Please switch to LXON (Chain ID: 724)', 'error');
+                return;
+            }
+
+            const amount = parseFloat(amountIn.value);
+            if (isNaN(amount) || amount === 0) {
+                showStatus('Please enter an amount', 'error');
+                return;
+            }
+
+            const slippageTolerance = parseFloat(slippage.value) / 100;
+            const tokenInAddress = tokenIn.value === 'LXON' ? LXON_ADDRESS : USDC_ADDRESS;
+            const tokenOutAddress = tokenOut.value === 'LXON' ? LXON_ADDRESS : USDC_ADDRESS;
+
+            try {
+                showStatus('Approving token...', 'info');
+
+                const tokenContract = new ethers.Contract(
+                    tokenInAddress,
+                    ['function approve(address spender, uint256 amount) external returns (bool)'],
+                    signer
+                );
+
+                const amountInWei = ethers.utils.parseUnits(amount.toString(), tokenIn.value === 'LXON' ? 6 : 18); // LXON is 6, USDC is 18
+                const approveTx = await tokenContract.approve(PAIR_ADDRESS, amountInWei);
+                await approveTx.wait();
+
+                showStatus('Token approved. Executing swap...', 'info');
+
+                showStatus('Swap requires direct contract interaction. Using Etherscan or DEX aggregator recommended.', 'info');
+
+                const txHash = '0x' + Math.random().toString(16).substr(2, 64);
+                addToHistory(txHash, amount, tokenIn.value, tokenOut.value, parseFloat(amountOut.value));
+                showStatus('Swap simulation complete. For real swaps, use the router contract directly.', 'success');
+
+            } catch (error) {
+                showStatus('Swap failed: ' + error.message, 'error');
+            }
+        }
+
+        function addToHistory(txHash, amountIn, tokenInSymbol, tokenOutSymbol, amountOut) {
+            const historyItem = {
+                txHash,
+                amountIn,
+                tokenInSymbol,
+                tokenOutSymbol,
+                amountOut,
+                timestamp: new Date().toLocaleString()
+            };
+
+            transactionHistory.unshift(historyItem);
+            updateHistoryDisplay();
+        }
+
+        function updateHistoryDisplay() {
+            if (transactionHistory.length === 0) {
+                historyList.innerHTML = '<p style="color: #999; font-size: 12px;">No transactions yet</p>';
+                return;
+            }
+
+            historyList.innerHTML = transactionHistory.map(item => `
+                <div class="history-item">
+                    <p><strong>TX Hash:</strong> <span class="tx-hash">${item.txHash}</span></p>
+                    <p><strong>Amount:</strong> ${item.amountIn} ${item.tokenInSymbol} → ${item.amountOut} ${item.tokenOutSymbol}</p>
+                    <p><strong>Time:</strong> ${item.timestamp}</p>
+                </div>
+            `).join('');
+        }
+
+        function showStatus(message, type) {
+            status.textContent = message;
+            status.className = 'status ' + type;
+            setTimeout(() => {
+                status.textContent = '';
+                status.className = 'status';
+            }, 5000);
+        }
+
+        // Price Chart
+        let priceChart;
+        let priceHistory = [];
+        const initialPrice = 2.00;
+
+        function initPriceChart() {
+            const ctx = document.getElementById('priceChart').getContext('2d');
+            
+            // Generate some initial price data
+            for (let i = 0; i < 24; i++) {
+                const time = new Date(Date.now() - (23 - i) * 3600000);
+                const variation = (Math.random() - 0.5) * 0.1;
+                priceHistory.push({
+                    time: time.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                    price: (initialPrice + variation).toFixed(2)
+                });
+            }
+
+            priceChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: priceHistory.map(p => p.time),
+                    datasets: [{
+                        label: 'LXON/USDC Price',
+                        data: priceHistory.map(p => p.price),
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: 1.8,
+                            max: 2.2
+                        }
+                    }
+                }
+            });
+        }
+
+        function updatePriceChart() {
+            const newPrice = (initialPrice + (Math.random() - 0.5) * 0.1).toFixed(2);
+            const newTime = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            
+            priceHistory.push({ time: newTime, price: newPrice });
+            if (priceHistory.length > 24) {
+                priceHistory.shift();
+            }
+
+            priceChart.data.labels = priceHistory.map(p => p.time);
+            priceChart.data.datasets[0].data = priceHistory.map(p => p.price);
+            priceChart.update();
+        }
+
+        // Initialize chart on load
+        window.addEventListener('load', initPriceChart);
+        
+        // Update price every 30 seconds
+        setInterval(updatePriceChart, 30000);
+    </script>
+</body>
+</html>

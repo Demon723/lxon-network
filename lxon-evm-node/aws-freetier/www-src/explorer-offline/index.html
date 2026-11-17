@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LXON block explorer — offline | chain 724</title>
+<meta name="description" content="The LXON block explorer is offline. Chain 724 was restarted on
+2026-11-03 on a single free-tier node running the consensus client only; the explorer service is not
+part of that host. The chain itself is live and readable over RPC.">
+<link rel="icon" href="/assets/lxon-mark-64.png" sizes="64x64" type="image/png">
+<style>
+  :root{--bg:#0b0f14;--fg:#e6edf3;--mut:#8b98a5;--line:#1f2630;--warn:#f0883e;--ok:#3fb950}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+       font:16px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  .wrap{max-width:44rem;margin:0 auto;padding:4rem 1.25rem 6rem}
+  header{display:flex;align-items:center;gap:.8rem;margin-bottom:2.5rem}
+  img{width:34px;height:34px;border-radius:8px}
+  h1{font-size:1.7rem;margin:0;letter-spacing:-.01em}
+  p{color:var(--mut)} strong{color:var(--fg)}
+  code{background:#111721;border:1px solid var(--line);border-radius:5px;padding:.1em .35em;
+       font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;color:#c9d1d9}
+  .box{border:1px solid var(--line);border-radius:12px;padding:1.1rem 1.25rem;margin:1.4rem 0;background:#0e1420}
+  .bad{color:var(--warn)} .fine{color:var(--ok)}
+  a{color:#79c0ff}
+  pre{background:#111721;border:1px solid var(--line);border-radius:10px;padding:.9rem 1rem;
+      overflow:auto;font:12.5px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;color:#c9d1d9}
+  nav{margin-top:2.6rem;display:flex;gap:1rem;flex-wrap:wrap}
+  nav a{border:1px solid var(--line);border-radius:10px;padding:.55rem .9rem;text-decoration:none}
+  .stamp{color:var(--mut);font-size:12px;margin-top:2.4rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <img src="/assets/lxon-mark-64.png" alt="LXON mark">
+    <h1>Block explorer — offline</h1>
+  </header>
+
+  <p>This hostname used to serve the LXON block explorer. It no longer does, and the chain is not
+  the reason. On <strong>2026-11-03</strong> the node that hosted it was lost and the chain was
+  restarted on one small free-tier instance in AWS Stockholm running <strong>only the consensus
+  client</strong>. The explorer is a separate stack — a database and several application
+  containers — and that shape does not fit the host this chain now lives on.</p>
+
+  <div class="box">
+    <strong>What still works:</strong> chain 724 is live, sealing a block every five seconds, and
+    readable through a public <em>read-only</em> RPC endpoint. You can verify the chain yourself
+    without any explorer:
+  </div>
+
+  <pre>curl -s -X POST -H 'content-type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"eth_blockNumber","params":[]}' \
+  https://rpc.lxon.in</pre>
+
+  <p>The endpoint answers a fixed list of read methods and refuses every way of writing to the
+  chain, including <code>eth_sendRawTransaction</code>. It is the same source the
+  <a href="https://www.lxon.in/">main site</a> reads its figures from, so a number you get here and a number you see
+  there cannot disagree.</p>
+
+  <div class="box">
+    <span class="bad">Please note before you use any address:</span> the chain restarted from an
+    empty data volume. It kept its original genesis and its validator, but <strong>everything
+    created between block 1 and block 242,493 is gone</strong> — tokens, contracts, the exchange
+    pools and the bridge. An address from the old explorer is not a record of anything here.
+  </div>
+
+  <p class="fine">Chain <code>0x2d4</code> (724) · validator <code>0xFaE699d2…</code> ·
+  block period 5 s · node <code>13.61.55.231</code>, AWS eu-north-1</p>
+
+  <nav>
+    <a href="https://www.lxon.in/">Chain status</a>
+    <a href="https://www.lxon.in/app">App</a>
+    <a href="https://www.lxon.in/swap">Why the swap is offline</a>
+  </nav>
+
+  <p class="stamp">Chain 724 · this page is served by the consensus node itself · 2026-11-03</p>
+</div>
+</body>
+</html>

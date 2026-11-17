@@ -1,0 +1,66 @@
+{
+ "blockchain": {
+  "nodes": {
+   "generate": false,
+   "keys": [
+    "0xe2d96600e5b7aa3d9e95202c25e3fa594f34b31a53ee70588870bc60eb043c347b1676a8dd81bfd48fa9ff104990dae75bb526475a3e6059bd5b0940c56d40f5"
+   ]
+  },
+  "genesisVersion": 1
+ },
+ "genesis": {
+  "alloc": {
+   "b0b3d61416de9822109983389b9599884a8ff344": {
+    "balance": "0x1337000000000000000000000000000000000000000000000000000000000000"
+   },
+   "e5e937eb32be7e8bc0d6c4fd2275d872ba907aec": {
+    "balance": "0x1337000000000000000000000000000000000000000000000000000000000000"
+   },
+   "5ccbb12a03f264a638ae9d25662230d1638b7df7": {
+    "balance": "0x1337000000000000000000000000000000000000000000000000000000000000"
+   },
+   "d482147b898c6063b865a57c2ec758e8ff6a89f1": {
+    "balance": "0x1337000000000000000000000000000000000000000000000000000000000000"
+   },
+   "d6f0ad29541a048bcf824afcc9ad8b6c2d17436f": {
+    "balance": "0x1337000000000000000000000000000000000000000000000000000000000000"
+   },
+   "e8ea29ac0910b3e0ac430fa9c33b5678c5dd2272": {
+    "balance": "0x1337000000000000000000000000000000000000000000000000000000000000"
+   },
+   "e3223b4821d5876dce132da3e199b2a7c36b098b": {
+    "balance": "0x1337000000000000000000000000000000000000000000000000000000000000"
+   }
+  },
+  "coinbase": "0x0000000000000000000000000000000000000000",
+  "config": {
+   "chainId": 726,
+   "homesteadBlock": 0,
+   "eip150Block": 0,
+   "eip155Block": 0,
+   "eip158Block": 0,
+   "byzantiumBlock": 0,
+   "constantinopleBlock": 0,
+   "petersburgBlock": 0,
+   "istanbulBlock": 0,
+   "berlinBlock": 0,
+   "londonBlock": 0,
+   "shanghaiTime": 0,
+   "cancunTime": 0,
+   "qbft": {
+    "blockperiodseconds": 3,
+    "epochlength": 30,
+    "requesttimeoutseconds": 10
+   }
+  },
+  "difficulty": "0x1",
+  "extraData": "0x",
+  "gasLimit": "0x1c9c380",
+  "gasUsed": "0x0",
+  "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+  "nonce": "0x0",
+  "number": "0x0",
+  "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+  "timestamp": "0x655c0000"
+ }
+}

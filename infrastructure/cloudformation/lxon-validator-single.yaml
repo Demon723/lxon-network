@@ -1,0 +1,495 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: LXON Blockchain Validator - Single Node (Hyperledger Besu QBFT)
+
+Parameters:
+  Environment:
+    Type: String
+    Default: production
+    AllowedValues:
+      - development
+      - staging
+      - production
+    Description: Environment name
+
+  InstanceType:
+    Type: String
+    Default: t3.medium
+    AllowedValues:
+      - t3.medium
+      - t3.large
+      - t3.xlarge
+      - m5.large
+      - m5.xlarge
+    Description: EC2 instance type for validator
+
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: SSH key pair name
+
+  VpcCidr:
+    Type: String
+    Default: 10.0.0.0/16
+    Description: VPC CIDR block
+
+  PublicSubnetCidr:
+    Type: String
+    Default: 10.0.1.0/24
+    Description: Public subnet CIDR block
+
+  PrivateSubnetCidr:
+    Type: String
+    Default: 10.0.2.0/24
+    Description: Private subnet CIDR block for validator
+
+  ChainId:
+    Type: Number
+    Default: 724
+    Description: Blockchain chain ID
+
+  BackupRetentionDays:
+    Type: Number
+    Default: 30
+    AllowedValues:
+      - 7
+      - 14
+      - 30
+      - 60
+      - 90
+    Description: Backup retention period in days
+
+Resources:
+  # VPC
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCidr
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-lxon-vpc
+        - Key: Environment
+          Value: !Ref Environment
+
+  # Internet Gateway
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-lxon-igw
+
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  # Public Subnet
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PublicSubnetCidr
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-lxon-public-subnet
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-lxon-public-rt
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref PublicRouteTable
+
+  # Private Subnet for Validator
+  PrivateSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PrivateSubnetCidr
+      AvailabilityZone: !Select [1, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-lxon-private-subnet
+
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-lxon-private-rt
+
+  PrivateSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet
+      RouteTableId: !Ref PrivateRouteTable
+
+  # NAT Gateway for private subnet outbound access
+  NatGatewayEIP:
+    Type: AWS::EC2::EIP
+    DependsOn: VPCGatewayAttachment
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-lxon-nat-eip
+
+  NatGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatGatewayEIP.AllocationId
+      SubnetId: !Ref PublicSubnet
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-lxon-nat-gateway
+
+  PrivateRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway
+
+  # Security Groups
+  ValidatorSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for LXON validator
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+          Description: SSH access
+        - IpProtocol: tcp
+          FromPort: 30303
+          ToPort: 30303
+          CidrIp: 10.0.0.0/16
+          Description: P2P peer discovery
+        - IpProtocol: udp
+          FromPort: 30303
+          ToPort: 30303
+          CidrIp: 10.0.0.0/16
+          Description: P2P peer discovery UDP
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-lxon-validator-sg
+
+  # IAM Role for EC2 Instance
+  ValidatorInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-lxon-validator-role
+
+  ValidatorInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref ValidatorInstanceRole
+
+  # IAM Policy for CloudWatch Logs
+  CloudWatchLogsPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: LXONCloudWatchLogsPolicy
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+              - logs:PutRetentionPolicy
+            Resource: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:lxon-blockchain/*
+      Roles:
+        - !Ref ValidatorInstanceRole
+
+  # CloudWatch Log Groups
+  BesuLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: lxon-blockchain/besu
+      RetentionInDays: 7
+
+  SystemLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: lxon-blockchain/system
+      RetentionInDays: 7
+
+  # CloudWatch Alarms
+  CPUAlarmHigh:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Alarm if CPU > 80% for 5 minutes
+      AlarmName: !Sub ${Environment}-lxon-validator-cpu-high
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 80
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: InstanceId
+          Value: !Ref ValidatorInstance
+
+  MemoryAlarmHigh:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Alarm if memory > 90% for 5 minutes
+      AlarmName: !Sub ${Environment}-lxon-validator-memory-high
+      MetricName: mem_used_percent
+      Namespace: CWAgent
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 90
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: InstanceId
+          Value: !Ref ValidatorInstance
+
+  DiskAlarmHigh:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Alarm if disk > 90% for 5 minutes
+      AlarmName: !Sub ${Environment}-lxon-validator-disk-high
+      MetricName: disk_used_percent
+      Namespace: CWAgent
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 90
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: InstanceId
+          Value: !Ref ValidatorInstance
+        - Name: path
+          Value: /
+
+  # AWS Backup
+  BackupVault:
+    Type: AWS::Backup::BackupVault
+    Properties:
+      BackupVaultName: !Sub ${Environment}-lxon-backup-vault
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  BackupRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: backup.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicy
+
+  BackupPlan:
+    Type: AWS::Backup::BackupPlan
+    Properties:
+      BackupPlan:
+        BackupPlanName: !Sub ${Environment}-lxon-daily-backup
+        BackupPlanRule:
+          - RuleName: DailyBackup
+            TargetBackupVault: !Ref BackupVault
+            ScheduleExpression: cron(0 2 * * ? *)
+            StartWindowMinutes: 60
+            CompletionWindowMinutes: 180
+            Lifecycle:
+              DeleteAfterDays: !Ref BackupRetentionDays
+      BackupResources:
+        - ResourceArn: !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/${ValidatorInstance}
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  BackupRoleAssociation:
+    Type: AWS::Backup::BackupSelection
+    Properties:
+      BackupPlanId: !Ref BackupPlan
+      BackupSelection:
+        SelectionName: !Sub ${Environment}-lxon-backup-selection
+        IamRoleArn: !GetAtt BackupRole.Arn
+        Resources:
+          - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/${ValidatorInstance}
+
+  # EC2 Instance
+  ValidatorInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !FindInMap [RegionMap, !Ref 'AWS::Region', AMI]
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      SubnetId: !Ref PrivateSubnet
+      SecurityGroupIds:
+        - !Ref ValidatorSecurityGroup
+      IamInstanceProfile: !Ref ValidatorInstanceProfile
+      Monitoring: true
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 20
+            VolumeType: gp3
+            Encrypted: true
+            DeleteOnTermination: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-lxon-validator
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: ChainId
+          Value: !Ref ChainId
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -e
+          
+          # Update system
+          apt-get update
+          apt-get install -y wget curl openjdk-21-jre
+          
+          # Install Hyperledger Besu
+          wget https://bintray.com/hyperledger-org/besu-repo/download_file?file_path=besu-24.6.0.tar.gz -O besu.tar.gz
+          tar -xzf besu.tar.gz
+          mv besu-24.6.0 /usr/local/bin/besu
+          chmod +x /usr/local/bin/besu
+          
+          # Install CloudWatch Agent
+          wget https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
+          dpkg -i -E ./amazon-cloudwatch-agent.deb
+          
+          # Configure CloudWatch Agent
+          cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json << 'CWA_EOF'
+          {
+            "agent": {
+              "metrics_collection_interval": 60,
+              "run_as_user": "cwagent"
+            },
+            "metrics": {
+              "metrics_collected": {
+                "cpu": {
+                  "measurement": ["cpu_usage_active", "cpu_usage_idle", "cpu_usage_system", "cpu_usage_user"],
+                  "metrics_collection_interval": 60
+                },
+                "disk": {
+                  "measurement": ["used_percent"],
+                  "metrics_collection_interval": 60,
+                  "resources": ["*"]
+                },
+                "mem": {
+                  "measurement": ["mem_used_percent"],
+                  "metrics_collection_interval": 60
+                }
+              }
+            },
+            "logs": {
+              "logs_collected": {
+                "files": {
+                  "collect_list": [
+                    {
+                      "file_path": "/var/log/syslog",
+                      "log_group_name": "lxon-blockchain/besu",
+                      "log_stream_name": "{instance_id}",
+                      "retention_in_days": 7
+                    }
+                  ]
+                }
+              }
+            }
+          }
+          CWA_EOF
+          
+          /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+          
+          # Install Node.js
+          curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+          apt-get install -y nodejs
+          
+          # Install Web3.js
+          npm install -g web3
+
+Mappings:
+  RegionMap:
+    us-east-1:
+      AMI: ami-0c7217cdde317cfec
+    us-east-2:
+      AMI: ami-0568773882d492708
+    us-west-1:
+      AMI: ami-01e8f3f2f3e9c818a
+    us-west-2:
+      AMI: ami-01e8f3f2f3e9c818a
+    eu-west-1:
+      AMI: ami-0866b78ea185a27d5
+    eu-north-1:
+      AMI: ami-01e8f3f2f3e9c818a
+    eu-central-1:
+      AMI: ami-01e8f3f2f3e9c818a
+
+Outputs:
+  ValidatorInstanceIds:
+    Description: EC2 Instance IDs (JSON array)
+    Value: !Sub
+      - '["${ValidatorInstance}"]'
+      - ValidatorInstance: !Ref ValidatorInstance
+    Export:
+      Name: !Sub ${Environment}-LXONValidatorInstanceIds
+
+  ValidatorInstanceId:
+    Description: EC2 Instance ID
+    Value: !Ref ValidatorInstance
+    Export:
+      Name: !Sub ${Environment}-LXONValidatorInstanceId
+
+  ValidatorPrivateIP:
+    Description: Validator private IP
+    Value: !GetAtt ValidatorInstance.PrivateIp
+
+  VPCId:
+    Description: VPC ID
+    Value: !Ref VPC
+    Export:
+      Name: !Sub ${Environment}-LXONVPCId
+
+  BackupVaultArn:
+    Description: AWS Backup Vault ARN
+    Value: !GetAtt BackupVault.Arn
+    Export:
+      Name: !Sub ${Environment}-LXONBackupVaultArn

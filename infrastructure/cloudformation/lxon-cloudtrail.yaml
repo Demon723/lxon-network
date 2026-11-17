@@ -1,0 +1,206 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: LXON Blockchain - CloudTrail Audit Logging
+
+Parameters:
+  Environment:
+    Type: String
+    Default: production
+    AllowedValues:
+      - development
+      - staging
+      - production
+    Description: Environment name
+
+  TrailName:
+    Type: String
+    Default: lxon-blockchain-trail
+    Description: CloudTrail trail name
+
+  S3BucketName:
+    Type: String
+    Description: S3 bucket name for CloudTrail logs (must be globally unique)
+
+  KMSKeyId:
+    Type: String
+    Default: ""
+    Description: KMS key ID for CloudTrail log encryption (optional, default uses SSE-S3)
+
+  IsMultiRegion:
+    Type: String
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: Enable multi-region trail
+
+  IncludeGlobalServiceEvents:
+    Type: String
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: Include global service events
+
+Resources:
+  # S3 Bucket for CloudTrail Logs
+  CloudTrailBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref S3BucketName
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: CloudTrailLogLifecycle
+            Status: Enabled
+            Transitions:
+              - TransitionInDays: 90
+                StorageClass: GLACIER
+              - TransitionInDays: 365
+                StorageClass: DEEP_ARCHIVE
+            ExpirationInDays: 2555  # 7 years
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-lxon-cloudtrail-bucket
+        - Key: Environment
+          Value: !Ref Environment
+
+  # S3 Bucket Policy for CloudTrail
+  CloudTrailBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref CloudTrailBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowCloudTrailService
+            Effect: Allow
+            Principal:
+              Service: cloudtrail.amazonaws.com
+            Action: s3:PutObject
+            Resource: !Sub arn:aws:s3:::${S3BucketName}/AWSLogs/${AWS::AccountId}/*
+            Condition:
+              StringEquals:
+                s3:x-amz-acl: bucket-owner-full-control
+          - Sid: AllowCloudTrailServiceList
+            Effect: Allow
+            Principal:
+              Service: cloudtrail.amazonaws.com
+            Action: s3:GetBucketAcl
+            Resource: !Sub arn:aws:s3:::${S3BucketName}
+
+  # KMS Key for CloudTrail Encryption (optional)
+  CloudTrailKMSKey:
+    Type: AWS::KMS::Key
+    Condition: UseKMSKey
+    Properties:
+      Description: KMS key for CloudTrail log encryption
+      Enabled: true
+      KeyPolicy:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal:
+              AWS: !Sub arn:aws:iam::${AWS::AccountId}:root
+            Action: kms:*
+            Resource: "*"
+          - Sid: Allow CloudTrail to Encrypt Logs
+            Effect: Allow
+            Principal:
+              Service: cloudtrail.amazonaws.com
+            Action: kms:GenerateDataKey*
+            Resource: "*"
+            Condition:
+              StringLike:
+                kms:EncryptionContext:aws:cloudtrail:arn: !Sub arn:aws:cloudtrail:${AWS::Region}:${AWS::AccountId}:trail/${TrailName}
+          - Sid: Allow CloudTrail to Describe Key
+            Effect: Allow
+            Principal:
+              Service: cloudtrail.amazonaws.com
+            Action: kms:DescribeKey
+            Resource: "*"
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-lxon-cloudtrail-kms
+        - Key: Environment
+          Value: !Ref Environment
+
+  # CloudTrail Trail
+  CloudTrail:
+    Type: AWS::CloudTrail::Trail
+    Properties:
+      TrailName: !Ref TrailName
+      S3BucketName: !Ref CloudTrailBucket
+      IsMultiRegionTrail: !Equals [!Ref IsMultiRegion, "true"]
+      IncludeGlobalServiceEvents: !Equals [!Ref IncludeGlobalServiceEvents, "true"]
+      EnableLogFileValidation: true
+      KMSKeyId: !If [UseKMSKey, !GetAtt CloudTrailKMSKey.Arn, !Ref "AWS::NoValue"]
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-lxon-cloudtrail
+        - Key: Environment
+          Value: !Ref Environment
+
+  # CloudWatch Alarms for CloudTrail
+  CloudTrailErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Alarm if CloudTrail API errors detected
+      AlarmName: !Sub ${Environment}-lxon-cloudtrail-errors
+      MetricName: Error
+      Namespace: AWS/CloudTrail
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: TrailName
+          Value: !Ref TrailName
+
+  CloudTrailModificationAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Alarm if CloudTrail configuration is modified
+      AlarmName: !Sub ${Environment}-lxon-cloudtrail-modified
+      MetricName: StopLogging
+      Namespace: AWS/CloudTrail
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: TrailName
+          Value: !Ref TrailName
+
+Conditions:
+  UseKMSKey: !Not [!Equals [!Ref KMSKeyId, ""]]
+
+Outputs:
+  CloudTrailArn:
+    Description: CloudTrail ARN
+    Value: !GetAtt CloudTrail.Arn
+    Export:
+      Name: !Sub ${Environment}-LXONCloudTrailArn
+
+  S3BucketName:
+    Description: S3 bucket name for CloudTrail logs
+    Value: !Ref CloudTrailBucket
+    Export:
+      Name: !Sub ${Environment}-LXONCloudTrailBucket
+
+  KMSKeyId:
+    Description: KMS key ID for CloudTrail encryption
+    Value: !If [UseKMSKey, !GetAtt CloudTrailKMSKey.Arn, !Ref "AWS::NoValue"]
+    Condition: UseKMSKey

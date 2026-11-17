@@ -1,0 +1,127 @@
+{
+  "lxonWithdrawalNotice": "WITHDRAWN 2026-11-04: chain 724 restarted from an empty volume on 2026-11-03 and the token contract 0x99801A78639975D448EEb2f8a807738DC8Df67Dc now returns 0 bytes of code on https://rpc.lxon.in (measured; control: the v4.1 bridge on Polygon 137 reads 19,105 bytes to the same reader). Do not submit or host this list. A corrected one is a step AFTER the redeploy: docs/runbooks/repoint-137-to-rebuilt-724-plan.md Phases 2-3.",
+  "name": "LXON Network Token List",
+  "timestamp": "2026-11-01T22:02:41.000Z",
+  "version": {
+    "major": 3,
+    "minor": 1,
+    "patch": 0
+  },
+  "logoURI": "https://www.lxon.in/assets/lxon-logo-200.png",
+  "keywords": [
+    "lxon",
+    "wlxon",
+    "bridged",
+    "defi",
+    "settlement",
+    "polygon",
+    "metadata verified"
+  ],
+  "tags": {
+    "settlement": {
+      "name": "Settlement Asset",
+      "description": "Main ERC20 token of LXON chain 724"
+    },
+    "wrapped": {
+      "name": "Wrapped Token",
+      "description": "1:1 wrapper. Redeemable through its own contract for the underlying token"
+    },
+    "bridged": {
+      "name": "Bridged Asset",
+      "description": "Minted on Polygon 137 by the LXON attested bridge, 1:1 against LXON escrowed on chain 724"
+    },
+    "defi": {
+      "name": "DeFi",
+      "description": "Tradable on the AMM pools deployed on chain 724"
+    },
+    "gas": {
+      "name": "Gas Asset",
+      "description": "Wrapped form of the native gas token of chain 724"
+    }
+  },
+  "tokens": [
+    {
+      "chainId": 724,
+      "address": "0x99801A78639975D448EEb2f8a807738DC8Df67Dc",
+      "name": "LXON",
+      "symbol": "LXON",
+      "decimals": 18,
+      "logoURI": "https://www.lxon.in/assets/lxon-logo-200.png",
+      "tags": [
+        "settlement",
+        "defi"
+      ],
+      "extensions": {
+        "role": "canonical native asset of chain 724",
+        "wrappedForm": {
+          "chainId": 724,
+          "address": "0xC0CF6B0E6C5a0705F319BA5c629a6Bc7E82FEf00"
+        },
+        "metadataVerifiedFromChain": "2026-11-01"
+      }
+    },
+    {
+      "chainId": 724,
+      "address": "0xC0CF6B0E6C5a0705F319BA5c629a6Bc7E82FEf00",
+      "name": "LXON Wrapped",
+      "symbol": "wLXON",
+      "decimals": 18,
+      "logoURI": "https://www.lxon.in/assets/lxon-logo-200.png",
+      "tags": [
+        "wrapped",
+        "defi"
+      ],
+      "extensions": {
+        "role": "1:1 wrapper of LXON on chain 724",
+        "underlying": {
+          "chainId": 724,
+          "address": "0x99801A78639975D448EEb2f8a807738DC8Df67Dc"
+        },
+        "nameMatchesContract": true,
+        "metadataVerifiedFromChain": "2026-11-01"
+      }
+    },
+    {
+      "chainId": 724,
+      "address": "0xcB742c31f0815648E13fF24D8131B89075FF32e2",
+      "name": "Wrapped Ether",
+      "symbol": "WETH",
+      "decimals": 18,
+      "tags": [
+        "gas",
+        "wrapped",
+        "defi"
+      ]
+    },
+    {
+      "chainId": 137,
+      "address": "0x7A3c0C34f157EfDD3E4913c5224C15E645469093",
+      "name": "Wrapped LXON",
+      "symbol": "wLXON",
+      "decimals": 18,
+      "logoURI": "https://www.lxon.in/assets/lxon-logo-200.png",
+      "tags": [
+        "bridged",
+        "wrapped"
+      ],
+      "extensions": {
+        "role": "canonical tradable wLXON on Polygon 137",
+        "bridgedFrom": {
+          "chainId": 724,
+          "address": "0x99801A78639975D448EEb2f8a807738DC8Df67Dc"
+        },
+        "wrapperOnSourceChain": {
+          "chainId": 724,
+          "address": "0xC0CF6B0E6C5a0705F319BA5c629a6Bc7E82FEf00"
+        },
+        "duplicateNameOnSameChain": {
+          "address": "0xD69fB341F35cadE285331797D7d35c5613D7Dfbe",
+          "name": "Wrapped LXON",
+          "symbol": "wLXON",
+          "status": "project-deployed, not this token; totalSupply() measured 0 on 2026-11-01"
+        },
+        "metadataVerifiedFromChain": "2026-11-01"
+      }
+    }
+  ]
+}

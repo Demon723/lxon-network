@@ -1,0 +1,11 @@
+# Installed alongside every front, in both modes. One fragment owns the unmatched-Host catch-all so
+# the box never answers as the RPC or the site for a hostname it was not configured for -- a scanner
+# hitting the IP with Host: 13.61.55.231 gets 404, not a chain endpoint.
+#
+# This is a separate file rather than part of rpc.http.caddy because the invariant has to hold in
+# TLS mode too: when the http fragments are gone, a catch-all defined inside one of them would
+# vanish with it. (Asking "exactly one fragment claims :80" against the http-only fragments is what
+# made the first TLS install abort on 2026-11-03.)
+:80 {
+	respond "not found" 404
+}

@@ -1,0 +1,16 @@
+offline_plan1559.py is a byte-for-byte copy of the file that signs and broadcasts the v4.1 Polygon-137
+bridge ceremony. It is vendored here, rather than imported across worktrees, because the ceremony in
+this directory has to be runnable from a machine that does not have that worktree checked out -- and a
+plan made here is a pre-authorised movement of money, so the half that checks it cannot depend on
+another session's tree being present.
+
+    canonical : attested-bridge-wt/apps/contracts/script/v41/lib/offline_plan1559.py
+    sha256    : 75c125929de472c0a910315dd1d966c226102f61553a4c9e02817e5b322f9a9b
+
+Copy it, and the deployed 724/137 bridge ceremony keeps using a checker nobody edited for this
+contract pair. Nothing in this directory should grow a fee field, a decode path, or a comparison that
+this file does not already have: if a check is missing, that is a change to the canonical file, made
+once and then re-vendored here -- and this line updated.
+
+RehearseWlxon137.sh re-hashes both files whenever the canonical tree is reachable and fails the run on
+a mismatch, so a silent edit of this copy is caught by the rehearsal rather than by the launch.

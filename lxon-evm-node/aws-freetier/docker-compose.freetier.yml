@@ -1,0 +1,74 @@
+name: lxon-evm-ft
+
+# LXON chain 724 — free-tier variant. ONE Besu sealer and nothing else.
+#
+# Dropped versus ../aws/docker-compose.aws.yml, and why:
+#   - blockscout-db / backend / frontend / redis / sc-verifier: the explorer stack is ~3 GiB
+#     resident at idle (Postgres + Elixir + Node). It does not fit a 1-2 GiB free-tier host,
+#     and re-deploying it is a separate decision, not a boot dependency.
+#   - caddy / www / rpc sites: nothing to serve yet. rpc.lxon.in and explorer.lxon.in still
+#     resolve to the OLD EIP 13.62.37.246 in account 404268099234, so DNS has to be moved
+#     deliberately -- see README step 6.
+#   - DEBUG and TRACE from the RPC API set: they were enabled only for Blockscout. Smaller
+#     surface for the same node.
+#
+# The validator key is NOT in this repo and is not copied by deploy.sh. The bind-mounted
+# placeholder stays empty and the entrypoint spins until ../aws/push-secrets.sh delivers it.
+
+x-logging: &lxon-logging
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "3"
+
+services:
+  besu-perms:
+    image: alpine:3.20
+    container_name: lxon-besu-perms
+    restart: "no"
+    user: "0:0"
+    volumes:
+      - besu-data:/data
+    entrypoint: ["/bin/sh", "-c", "chown -R 1000:1000 /data && chmod 700 /data && echo 'besu-data ownership set for uid 1000'"]
+
+  besu-sealer:
+    image: hyperledger/besu:26.10.0
+    container_name: lxon-besu-sealer
+    restart: unless-stopped
+    stop_grace_period: 3m
+    depends_on:
+      besu-perms:
+        condition: service_completed_successfully
+    user: "1000:1000"
+    logging: *lxon-logging
+    environment:
+      # Heap is capped explicitly rather than left to JVM defaults: on t4g.micro (1 GiB) the
+      # default MaxRAMPercentage would oversubscribe the host and the OOM killer would take
+      # Besu specifically. verify.sh confirms the cap is actually on the process line.
+      JAVA_OPTS: "-Xms256m -Xmx512m -XX:MaxRAMPercentage=50.0 -XX:+ExitOnOutOfMemoryError"
+      BESU_RPC_API: "ETH,NET,WEB3,TXPOOL"
+      BESU_RPC_HOST_ALLOWLIST: "localhost,127.0.0.1"
+    volumes:
+      - ./besu/genesis.json:/etc/besu/genesis.json:ro
+      - ./besu/entrypoint-besu.sh:/scripts/entrypoint-besu.sh:ro
+      - ./besu/privatekey.txt:/key/key.priv:ro
+      - besu-data:/var/lib/besu
+    ports:
+      # Loopback-only publishes, and the security group carries no rule for 8545/8546 at all.
+      # This chain is QBFT n=1/f=0: an exposed ADMIN/QBFT API is a chain takeover, not an
+      # inconvenience. Operators use an SSH tunnel.
+      - "127.0.0.1:8545:8545"
+      - "127.0.0.1:8546:8546"
+      - "30303:30303"
+    entrypoint: ["/bin/sh", "/scripts/entrypoint-besu.sh"]
+    mem_limit: 896m
+    memswap_limit: 2944m
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8545'"]
+      interval: 15s
+      timeout: 5s
+      retries: 24
+      start_period: 120s
+
+volumes:
+  besu-data:

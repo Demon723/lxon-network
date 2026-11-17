@@ -1,0 +1,35 @@
+{
+	admin localhost:2019
+	# ACME contact address is deliberately NOT fabricated. Add `email someone@lxon.in` with a
+	# real mailbox if the owner wants Let's Encrypt renewal warnings; an invented address is
+	# worse than none, and Caddy will still issue without one.
+}
+
+# PRODUCTION FRONT — TLS via Let's Encrypt.
+#
+# Only valid once rpc.lxon.in actually resolves to this instance. ./expose-rpc.sh measures the
+# A record and installs this file when it matches, Caddyfile.rpc.http when it does not.
+rpc.lxon.in {
+	encode zstd gzip
+
+	# The only upstream is the allow-listing gateway on loopback; Besu's own 8545 is not proxied
+	# from anywhere in this config.
+	reverse_proxy 127.0.0.1:9545 {
+		health_uri /
+		health_interval 15s
+		health_timeout 5s
+	}
+
+	log {
+		output file /var/log/caddy/rpc-lxon-in.access.log {
+			roll_size 10MiB
+			roll_keep 5
+		}
+		format json
+	}
+}
+
+# HTTP exists so Let's Encrypt can complete HTTP-01 and so browsers are redirected.
+http://rpc.lxon.in {
+	redir https://rpc.lxon.in{uri} permanent
+}

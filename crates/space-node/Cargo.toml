@@ -1,0 +1,21 @@
+[package]
+name = "space-node"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "lxon-space"
+path = "src/main.rs"
+
+[dependencies]
+crypto-pqc = { path = "../crypto-pqc" }
+l2-sequencer = { path = "../l2-sequencer" }
+space-relay = { path = "../space-relay" }
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+anyhow.workspace = true
+rand.workspace = true
+hex.workspace = true
+bincode.workspace = true

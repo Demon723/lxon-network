@@ -1,0 +1,526 @@
+{
+  "network": "lxon-mainnet-devnet",
+  "chainId": 724,
+  "updatedAt": "2026-10-21T14:05:00Z",
+  "node": {
+    "client": "besu/v26.10.0/linux-x86_64/openjdk-java-25",
+    "consensus": "QBFT (single validator, 5s blocks, epoch 30000)",
+    "evmLevel": "Cancun",
+    "genesisHash": "0x6c931dffbac6d832d33efb81d31880391cb637eed456cc838bf9689595ecc588",
+    "rpcHttp": "https://rpc.lxon.in (read-only ETH,NET,WEB3 on a non-sealing besu-rpc node; the sealer stays 127.0.0.1:8545)",
+    "rpcWs": "wss://rpc.lxon.in/ws",
+    "rpcTunnel": "ssh -i ~/.ssh/lxon-eu-north-1.pem -N -L 8545:127.0.0.1:8545 ubuntu@13.62.37.246",
+    "explorer": "https://explorer.lxon.in (TLS since 2026-10-20; 3000/4000 are loopback-only on the node and the security-group rules are revoked)",
+    "explorerApi": "https://explorer.lxon.in/api",
+    "validator": "0xFaE699d2848957c7c3bE67D8c90f0E456419cAdA",
+    "host": "i-0be453b2850bd6eae (t3.large, eu-north-1)",
+    "rpcApiNamespaces": "ETH,NET,WEB3,DEBUG,TXPOOL,TRACE (ADMIN/QBFT/MINER removed 2026-10-20)",
+    "rpcLegacyTunnel": "ssh -i ~/.ssh/lxon-eu-north-1.pem -N -L 8545:127.0.0.1:8545 ubuntu@13.62.37.246"
+  },
+  "deployer": "0xFaE699d2848957c7c3bE67D8c90f0E456419cAdA",
+  "contracts": {
+    "LXONNativeToken": "0xe801e058b4c9f77dd60980a80f7607a50afe1799",
+    "LxonTokenEnhanced": "0x99801a78639975d448eeb2f8a807738dc8df67dc",
+    "LXONBridgeEnhanced": "0x28c93c2af6b1d5349ba356a8735b343b2caa4379",
+    "LXONBridgeEnhanced_v2_deprecated": "0xb4927abef5247a3ab53c3074f469f3cfd4d470d1",
+    "LXONBridgeEnhanced_v1_deprecated": "0xbc18d2886ebefee91f6e820114b1d976f1be8330",
+    "LXONStakingEnhanced": "0x4645Fd49020DBa0C5eD16500694943365b776B2C",
+    "LXONStakingEnhanced_v1_unexitable": "0x37e1c5eC13B65e6e90271eCe52327E26f5E2e1e8",
+    "LXONTOTPAuth": "0x39E542E91fe64E7e8b64D51ab7888519FF486C25",
+    "LXONChipRegistry": "0x536050aDfB25d346fF0B173f3dff37f042CE43B8",
+    "LXONCardRegistry": "0x6081aBeAC6e0D82A22bd4262e02e089357fd955F",
+    "LXONNFT": "0x15F2C05Af78813604D9D4a3047E0Be8A759D6638",
+    "LXONPhygitalBridge": "0xA2B47f17620D4CBC8CbAc47C54a8B36EDb344Bb8",
+    "LXONHardwareWallet": "0x311b133ee775747B323F27Ab53c831bd52153c42",
+    "LXONValidatorStaking": "0x0d927a4b95701AE348b961eA7FB7E5Dda0435196",
+    "LXONSlashingContract": "0x26F325C38A1cf658D8B181Cac6c8fB1C3FFfD707",
+    "BridgeValidatorRegistry": "0xd6C40F84cDD8c4C5dd03967EF2567abbAE27bC81",
+    "VestingEscrow": "0x363d165543Bd9FeEFaF8fC036392ba11c96C455e",
+    "LXONWrapper": "0xC0CF6B0E6C5a0705F319BA5c629a6Bc7E82FEf00",
+    "LXONWrapper_v1_unbacked": "0x76EF25145ec71d72C6Bf8c1f0850466141eD6706",
+    "LXONTBAccount": "0x7fE0C6e9aB0BaBc6d37ABd0314eB9A1A9A357aD5",
+    "LXONValidatorStakingTimelock": "0x2F2671B38c0291873a6fC5f9Bf013A36137332d9",
+    "bridgeValidators": [
+      "0xc9eaC7783E9f4dF23f592C13065D03F8a0ED0ef5",
+      "0x5ad73F86CAD3d0074A86cf276a67B119a4f4A628",
+      "0xF2b1a38A53DAF4a40fAa9E956887Ac94297588a0"
+    ]
+  },
+  "sources": {
+    "LXONNativeToken": {
+      "file": "contracts/LXONNativeTokenSimple.sol",
+      "note": "The deployed bytecode matches LXONNativeTokenSimple.sol, NOT contracts/LXONNativeToken.sol (that one is 12000 B of creation code with OZ imports; the on-chain contract is 2951 B and self-contained).",
+      "constructorArguments": null
+    },
+    "LxonTokenEnhanced": {
+      "file": "contracts/LxonTokenEnhanced.sol",
+      "constructor": "constructor(address admin, address initialHolder, uint256 initialSupply)",
+      "constructorArguments": "0x000000000000000000000000fae699d2848957c7c3be67d8c90f0e456419cada000000000000000000000000fae699d2848957c7c3be67d8c90f0e456419cada00000000000000000000000000000000000000000000000000005af3107a4000"
+    },
+    "LXONBridgeEnhanced": {
+      "file": "contracts/LXONBridgeEnhanced.sol",
+      "constructor": "constructor(address _priceFeed, address _timelock, address _lxonToken)",
+      "constructorArguments": "0x000000000000000000000000000000000000000000000000000000000000000000000000000000000000000099801a78639975d448eeb2f8a807738dc8df67dc00000000000000000000000099801a78639975d448eeb2f8a807738dc8df67dc",
+      "note": "Deployed 2026-10-19 by script/MigrateBridgeTokenRef.s.sol. setPeerBridge/setTreasury/setMinConfirmations/setMaxTransferAmount/setPriceFeed are onlyTimelock (msg.sender must equal the token); grantRole/revokeRole/addValidator/removeValidator/slashValidator and the circuit breakers stay role-gated and immediate; the staking functions now move lxonToken instead of the bridge's own (non-existent) ERC20."
+    },
+    "LXONBridgeEnhanced_v2_deprecated": {
+      "file": "contracts/LXONBridgeEnhanced.sol",
+      "constructor": "constructor(address _priceFeed, address _timelock) \u2014 timelock-gated, but addValidator/slash still used IERC20(address(this))",
+      "note": "Replaced within minutes of its own deployment. No token roles, no validators. History only."
+    },
+    "LXONBridgeEnhanced_v1_deprecated": {
+      "file": "contracts/LXONBridgeEnhanced.sol",
+      "constructor": "constructor(address _priceFeed) \u2014 pre-timelock build",
+      "note": "Replaced. Setters were immediate under DEFAULT_ADMIN_ROLE and the token could not execute timelock operations against it. No token roles. History only."
+    },
+    "LXONStakingEnhanced": {
+      "file": "contracts/LXONStakingEnhanced.sol",
+      "constructor": "constructor(address _lxonToken, string _name_, string _symbol_)",
+      "constructorArguments": "0x00000000000000000000000099801a78639975d448eeb2f8a807738dc8df67dc000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000154c584f4e205374616b696e6720506f736974696f6e000000000000000000000000000000000000000000000000000000000000000000000000000000000000064c584f4e53500000000000000000000000000000000000000000000000000000",
+      "note": "v2, redeployed with the exit fix. Same args as the broken v1 at 0x37e1c5eC\u2026."
+    },
+    "LXONTOTPAuth": {
+      "file": "contracts/LXONTOTPAuth.sol",
+      "constructor": "constructor()",
+      "constructorArguments": "0x",
+      "note": "Founder-gated TOTP authority. founder = deployer. Chip/card minting and token activation all require a valid founder TOTP code, so nothing in the device cluster can be registered until a secret is set with setTOTPSecret."
+    },
+    "LXONChipRegistry": {
+      "file": "contracts/LXONChipRegistry.sol",
+      "constructor": "constructor(address _totpAuth)",
+      "constructorArguments": "0x00000000000000000000000039e542e91fe64e7e8b64d51ab7888519ff486c25"
+    },
+    "LXONCardRegistry": {
+      "file": "contracts/LXONCardRegistry.sol",
+      "constructor": "constructor(address _totpAuth)",
+      "constructorArguments": "0x00000000000000000000000039e542e91fe64e7e8b64d51ab7888519ff486c25"
+    },
+    "LXONNFT": {
+      "file": "contracts/LXONNFT.sol",
+      "constructor": "constructor(address _chipRegistry, address _cardRegistry, address _totpAuth)",
+      "constructorArguments": "0x000000000000000000000000536050adfb25d346ff0b173f3dff37f042ce43b80000000000000000000000006081abeac6e0d82a22bd4262e02e089357fd955f00000000000000000000000039e542e91fe64e7e8b64d51ab7888519ff486c25",
+      "note": "mint(to,tier,uri) is onlyFounder and needs no TOTP; activateToken(tokenId,chipId,totpCode) does. tokenId 1 minted to the deployer (tx 0x82d12d91\u2026, block 43736), which is the token LXONTBAAccount is bound to."
+    },
+    "LXONPhygitalBridge": {
+      "file": "contracts/LXONPhygitalBridge.sol",
+      "constructor": "constructor(address _lxonToken, address _protocolAuthority)",
+      "constructorArguments": "0x000000000000000000000000e801e058b4c9f77dd60980a80f7607a50afe1799000000000000000000000000fae699d2848957c7c3be67d8c90f0e456419cada",
+      "note": "Wired to LXONNativeToken (0xe801\u2026, symbol XON) because its state var is typed LXONNativeToken, not IERC20 \u2014 see knownIssues for the dead activation-bonus path."
+    },
+    "LXONHardwareWallet": {
+      "file": "contracts/LXONHardwareWallet.sol",
+      "constructor": "constructor(address _lxonToken, address _phygitalBridge, address _recoveryAuthority)",
+      "constructorArguments": "0x000000000000000000000000e801e058b4c9f77dd60980a80f7607a50afe1799000000000000000000000000a2b47f17620d4cbc8cbac47c54a8b36edb344bb8000000000000000000000000fae699d2848957c7c3be67d8c90f0e456419cada"
+    },
+    "LXONValidatorStaking": {
+      "file": "contracts/LXONValidatorStaking.sol",
+      "constructor": "constructor(address _lxonToken, uint256 _timelockDelay)",
+      "constructorArguments": "0x00000000000000000000000099801a78639975d448eeb2f8a807738dc8df67dc000000000000000000000000000000000000000000000000000000000002a300",
+      "note": "Deployed against LxonTokenEnhanced (the token with roles/permit). Its constructor deploys a TimelockController(172800s, proposer=deployer, executor=deployer) at 0x2F2671B3\u2026; MIN stake is expressed as TIER_1_MIN_STAKE/TIER_2/TIER_3, there is no MIN_STAKE."
+    },
+    "LXONSlashingContract": {
+      "file": "contracts/LXONSlashingContract.sol",
+      "constructor": "constructor(address _validatorStaking)",
+      "constructorArguments": "0x0000000000000000000000000d927a4b95701ae348b961ea7fb7e5dda0435196"
+    },
+    "BridgeValidatorRegistry": {
+      "file": "contracts/BridgeValidatorRegistry.sol",
+      "constructor": "constructor()",
+      "constructorArguments": "0x",
+      "note": "Independent of the bridge's own validator set; 0 validators registered. It is not wired into LXONBridgeEnhanced 0x28c93c\u2026, so registering here does not enable signing there."
+    },
+    "VestingEscrow": {
+      "file": "contracts/VestingEscrow.sol",
+      "constructor": "constructor(address _token)",
+      "constructorArguments": "0x00000000000000000000000099801a78639975d448eeb2f8a807738dc8df67dc"
+    },
+    "LXONWrapper": {
+      "file": "contracts/LXONWrapper.sol",
+      "constructor": "constructor(address _originalLXON)",
+      "constructorArguments": "0x00000000000000000000000099801a78639975d448eeb2f8a807738dc8df67dc",
+      "note": "wLXON (LXON Wrapped) v2, redeployed 2026-10-21 at 0xC0CF6B0E6C5a0705F319BA5c629a6Bc7E82FEf00 with the same constructor argument as the unbacked v1 at 0x76EF25145ec71d72C6Bf8c1f0850466141eD6706. wrap() does originalLXON.safeTransferFrom(msg.sender, address(this), amount) before _mint; unwrap() _burns then safeTransfers back (burn before pay). originalLXON is now an IERC20 immutable with a zero-address check, decimals() overrides to the declared DECIMALS = 18, and the unused burn(uint256) that destroyed wLXON with no redemption is gone. mint()/burnFrom() stay MINTER_ROLE-gated for wLXONBridge.sol's custody-at-the-bridge design. Proven live: 500e18 wrapped (escrowed == supply == collateralBalance()) then unwrapped, caller balance unchanged to the wei."
+    },
+    "LXONTBAccount": {
+      "file": "contracts/LXONTBAccount.sol",
+      "constructor": "constructor(address _nftContract, uint256 _tokenId, address _nativeToken)",
+      "constructorArguments": "0x00000000000000000000000015f2c05af78813604d9d4a3047e0be8a759d66380000000000000000000000000000000000000000000000000000000000000001000000000000000000000000e801e058b4c9f77dd60980a80f7607a50afe1799",
+      "note": "Token-bound account for LXONNFT tokenId 1. owner is set to the deployer at construction; the contract never validates that the caller owns the NFT."
+    }
+  },
+  "transactions": {
+    "LXONNativeToken": "0x20a63ec5f86c85535c0a096f575ef1e3a5a34f74eeaec3c6862f5dab6a2f36fe",
+    "LxonTokenEnhanced": "0xaa39f4552541573cf3290bf83fabdd500d73d9c5320df148260b432ba8e32f25",
+    "LXONBridgeEnhanced": "0x350efc960a4c4ae9e8da2253262b0f6fcb2b3cde294e78df489e23ae12046d6f",
+    "grantMINTER_ROLE": "0xc1a41402b8bb8d51eefa212ad35ca20b118b83db8e892c6e46229d575c84f0a2",
+    "grantBURNER_ROLE": "0x27e0599978aa62726ba11cc1f7e3829fe91bc70b045db6a144c1473ca49a3164",
+    "scheduleTimelock_setMinConfirmations": "0xf8faab48630f04891bae12ba67bafe73a27530e57809939eb99268925a6a46df",
+    "migrateV2.deployBridge": "0x784fa7d4f5a93cbb1349405351cc3b86297c8c7ee5f4286fc24cf60ead77827c",
+    "migrateV2.grantMINTER_new": "0xe0a1cc2cefae30bf5d81a6d28e0b9a14e3b98045c43e2399016b596cb3e4d91c",
+    "migrateV2.grantBURNER_new": "0x32d4645ed5152f7a16e253afc568acd119ac4faaa7f40bd1ad866b934a438ebb",
+    "migrateV2.revokeMINTER_old": "0xe3407d052373ae9cf12d510b41d38c7638504dc3792b2ca46338668431378372",
+    "migrateV2.revokeBURNER_old": "0xe53b09608f017b996b87debc4d7f74efc6759707a16dae61b6b565db4479b41d",
+    "migrateV2.cancelStaleTimelock": "0x0e9676a6ab2a6834b0c8758643de646fe58f7546f07582d5913c8fc6f9b569b1",
+    "migrateV2.scheduleNewTimelock": "0x356bf4427f92e35140d7c5a88626ef7dbe3e074b34783bcdd72c1b10c48ece1a",
+    "migrateV3.grantMINTER_toDeployer": "0x15c099e424eb1b098f501765c24864c7c6fa41c3d72b2060bcaa39955334e027",
+    "migrateV3.mintSupplyShortfall": "0x7a48e909d64c217ffbc16900cab4a80af5420dad961cc57533f60f0ef75434f0",
+    "migrateV3.deployBridge": "0xa5d2e4bdb6c4f0e5b8a89f34b5a7c6b40f83f3947b0dcb48477f979116e4c768",
+    "migrateV3.grantMINTER_bridge": "0x3e4c2fc26dea32e93c7a1dee2b3c8247d7abe94310b78b01b96dda7805a3672a",
+    "migrateV3.grantBURNER_bridge": "0x7594f66ea690e0b7bf4e4684dc99285cb77969a7984205b7abf985298c826d04",
+    "migrateV3.revokeMINTER_v2": "0x2e374ce11922b112504e3e0117636f3af376d98a5b26d7fc1ed7e30dceda047b",
+    "migrateV3.revokeBURNER_v2": "0x132f98311a9b3feb18187ef588cd1671a83d9b90d7d497ada1313f11bfd0d4ec",
+    "migrateV3.cancelV2Timelock": "0x9e60a526d998570f6aadf5c2dbcbe6100202a82daa6b4634ba1f402e385508a9",
+    "migrateV3.scheduleV3Timelock": "0xfcbc2f6f15dbb221e06d63201b274b147582fcfa342bb5f97da9fc873ee7ed55",
+    "migrateV3.approveStake": "0x081cea6603232a4c1454906c3e494a16224b2e260d215e794341d5f3b40ae50d",
+    "migrateV3.addValidator_proof": "0x63954fb86780d217ebc5d51e1aa342b391a6efb2c318beaaa60784a0082dc77a",
+    "migrateV3.removeValidator_proof": "0x129974cf0f9409eb36008c84c889ca2a396d37a7a2e93e5360524bbd59b5b165",
+    "txInclusionTest_0value_self": "0x06d390275b4b2209b572ad530f840f2b4cafe7f436a59914eef5dbf673fa8538",
+    "LXONStakingEnhanced": "0xa8117c984700015fe45d2d01ec5ee33b25c946784064de6cf677c08633db8c67",
+    "staking.approve_1000e18": "0xf10d05224b7ca24ba322c7886bf05884f4c64eb5a8c3e808de3abb73446b748e",
+    "staking.stake_1000e18_tier0": "0x5c3f0d443a9bbc4cd80c5c94d4b0d556c87232c6946c8527389124b82a697b89",
+    "LXONTOTPAuth": "0x084880814cdbbcdeaa1b8d11d107acd486e768a8ff69ea9db0ec2e61f81f2e36",
+    "LXONChipRegistry": "0x50a0c8d89805a08fb871627481a24539c0ff3ba26b694ce727fe12d4231d1300",
+    "LXONCardRegistry": "0xa36fef83428371f7b4dd9d685ca5a04d9d95c5c92b2203ec66a6f080ff84f245",
+    "LXONNFT": "0xe7c969a87446b37f86b31cdf9dab7f4da1aa74ccde3cec0851bfe34f2d218bc8",
+    "LXONPhygitalBridge": "0x7ec31d32359e4fd8b09bf111ac2b65662a819abfec73230a61e9ce82a7675c18",
+    "LXONHardwareWallet": "0x29c3cba8749f13c13d9f13ca96b66655dd173c20b3c4c7d1c7b675be54ec09c8",
+    "LXONValidatorStaking": "0xfad01c3d0d1736095f75ec5fa499b997f9c6f6ede27a74b74a0b8d9ae87a9c57",
+    "LXONSlashingContract": "0x797f1826e3f49b8facf922caa8522fbce03998afa0ae2753f564a75574e8adee",
+    "BridgeValidatorRegistry": "0xc8fbdc0b9357376b23b3d35c264c8560bbe1296b25f88ef81d0cf92a7ae44f5a",
+    "VestingEscrow": "0xcc6f57fd90d26a78dd05a94fc3bb49f18bd2ecf48edad13faf599f1a7557a5c9",
+    "LXONWrapper": "0x327e29c660492c3fbb5ef3eb7adf322033abba9f2a1da12a766bfba3c2bab748",
+    "LXONWrapper_v2": "0xb07f0fe0ebea41efb208b24a6e906891485f93654ac64f9ecd6970415dde9e00",
+    "LXONStakingEnhanced_v2_fixed": "0x0805b95cb8d0b804b273154792490dca36e787a18e2224a927c01a525909a1fd",
+    "LXONTBAccount": "0xf9fa54193006bbecbfc4e866d57abc6b4d360d480ae424e29b3c7a7cdab5f56a",
+    "nft.mint_tokenId1": "0x82d12d91b2291468cf2a4cb459bb548f87d995725d8293e05d4a9b45dd9b5a06",
+    "stakingV2.setTreasury_exitProof": "0xee66dcf2d4ff76362ca986cecea275f05a896a46776e4f6999c0417b36502921",
+    "stakingV2.approve_exitProof": "0x121f3de2f3671970bf5a68280495c82cb382bdffbd2e3e20218ba516fc261e04",
+    "stakingV2.stake_exitProof": "0x571535d676bae983389e634cc578f904ec6c01b1f53b233092171c27033274b0",
+    "stakingV2.unstake_exitProof": "0x50e8e30b518b999d454e65092ecf9810aec3c41fd4de1d8a6178890874e62fb8",
+    "wrapper_v2.approve_500e18": "0x48ba023c649f1d25ab30acc991c4b0cd382540bd365a0cd0a614a3298d4ff823",
+    "wrapper_v2.wrap_500e18": "0x2a68c33d92d575461c65c92563d714b22a627ff6214e5349d9964d56617559fd",
+    "wrapper_v2.unwrap_500e18": "0xfc4a1516b459172189c7b5b72752d3f1986fa13af45b4bbd5f6dfce4072d7714"
+  },
+  "timelockOperations": {
+    "cancelled_v1_target": {
+      "id": "0x2b530303a6a6b69ef05d94864660686abb391cc7de2a0b0a254c962f1718e655",
+      "target": "0xbc18d2886ebefee91f6e820114b1d976f1be8330",
+      "call": "setMinConfirmations(3)",
+      "wasReadyAt": "2026-10-20T23:31:56Z",
+      "cancelled": true,
+      "reason": "Could never have executed: the v1 bridge required DEFAULT_ADMIN_ROLE, which the token does not hold."
+    },
+    "cancelled_v2_target": {
+      "id": "0xe977672a7a7ad67e3b5b1ff1686c6eef1406eed1fda75de4f2452309a872235e",
+      "target": "0xb4927abef5247a3ab53c3074f469f3cfd4d470d1",
+      "call": "setMinConfirmations(3)",
+      "wasReadyAt": "2026-10-21T21:46:31Z",
+      "cancelled": true,
+      "reason": "The v2 bridge was retired minutes after deployment when the token-reference fix landed."
+    },
+    "pending": {
+      "id": "0xd2b4aa98f5961293e6fb084e330240d290e9927688023891ca826b0bdba36037",
+      "target": "0x28c93c2af6b1d5349ba356a8735b343b2caa4379",
+      "call": "setMinConfirmations(3)",
+      "readyAtUnix": 1792620846,
+      "readyAt": "2026-10-21T22:14:06Z",
+      "note": "Execute with LxonTokenEnhanced(0x9980\u202667dc).executeTimelock(this id) after that timestamp. Taken from the on-chain TimelockScheduled event, not the script's console line \u2014 operationId hashes block.timestamp, so the simulated id differs."
+    }
+  },
+  "verified": {
+    "LXONNativeToken": {
+      "name": "LXON",
+      "symbol": "XON",
+      "decimals": 18,
+      "totalSupply": "100000000000000000000000000",
+      "owner": "0xFaE699d2848957c7c3bE67D8c90f0E456419cAdA",
+      "deployerBalance": "100000000000000000000000000",
+      "runtimeCodeBytes": 2524
+    },
+    "LxonTokenEnhanced": {
+      "name": "LXON",
+      "symbol": "LXON",
+      "decimals": 18,
+      "totalSupply": "100000000000000000000000000",
+      "totalSupplyNote": "Corrected 2026-10-19 by minting the shortfall (was 100000000000000 after a 100_000_000 * 1e6 funding on an 18-decimal token). Now exactly 100,000,000 LXON.",
+      "deployerBalance": "100000000000000000000000000",
+      "TIMELOCK_DELAY": 172800
+    },
+    "LXONBridgeEnhanced": {
+      "minConfirmations": 2,
+      "maxTransferAmount": "1000000000000000000000000",
+      "treasury": "0xFaE699d2848957c7c3bE67D8c90f0E456419cAdA",
+      "priceFeed": "0x0000000000000000000000000000000000000000",
+      "timelock": "0x99801a78639975d448eeb2f8a807738dc8df67dc",
+      "lxonToken": "0x99801a78639975d448eeb2f8a807738dc8df67dc",
+      "MIN_VALIDATOR_STAKE": "10000000000000000000000",
+      "tokenHoldsBridgeAdminRole": false,
+      "runtimeCodeBytes": 12557,
+      "validatorsRegistered": 3,
+      "stakingPathProof": "addValidator(deployer, 1e22) moved 1e22 LXON into the bridge (tx 0x63954fb8\u2026) and removeValidator returned it (tx 0x129974cf\u2026), leaving balance 0 \u2014 the previously dead path now executes on chain.",
+      "directSetterAttempt": "eth_call setMinConfirmations(3) from the deployer reverts 0x08c379a0 'Only timelock' (checked live)",
+      "validatorStakes": {
+        "0xc9eaC7783E9f4dF23f592C13065D03F8a0ED0ef5": "10000000000000000000000",
+        "0x5ad73F86CAD3d0074A86cf276a67B119a4f4A628": "10000000000000000000000",
+        "0xF2b1a38A53DAF4a40fAa9E956887Ac94297588a0": "10000000000000000000000"
+      },
+      "VALIDATOR_ROLE": "0x21702c8af46127c7fa207f89d0b0a8441bb32959a0ac7df790e9ab1a25c98926",
+      "validatorRegistration": {
+        "at": "2026-10-21T13:4x UTC, blocks 44515-44522",
+        "txs": {
+          "fundV1": "0x8b95f16f3f4e953d5808adc1630a59d2dafb0ce0f6bcee609f513192d1ce71ba",
+          "fundV2": "0x644f2a0db01888556bc8155938f95072c7c744d04a3161f12a61c0098836d1a6",
+          "fundV3": "0x4b42dd5c37e962aaa657190c2556b8a83a220c609ca09db354ff6d7c74091f37",
+          "approve3e22": "0x8775cf6801678471a0be4da3d9fb0416ec6856346d1a6b2c213d6bc1aff6c7ee",
+          "addValidator1": "0x8da27edcb4450e48025caad66f116e94bc996d0d52aa5f9d3715e8e7aa0bcb29",
+          "addValidator2": "0x91fade3d827ece369afe425e156128acead79060244476554e585352e698f5c3",
+          "addValidator3": "0xdd206087ffdcad459f48a55d4be4e59ff55cd3163dce884eba6092fe902acb56"
+        },
+        "readback": "validators(addr)=true, hasRole(VALIDATOR_ROLE,addr)=true and validatorStake(addr)=1e22 for all three; bridge LXON balance 3e22; minConfirmations still 2",
+        "keys": "signing keys live in lxon-evm-node/besu/validators/*.hex (mode 600, directory ignored by .gitignore:74 lxon-evm-node/besu/validators/*). They are throwaway signing accounts, not the QBFT validator key. Production state was NOT touched by the quorum test below."
+      },
+      "quorumProofOnFork": {
+        "method": "anvil --fork-url https://rpc.lxon.in (fork head 44562) \u2014 the REAL deployed bytecode and the REAL validator stakes, driven with anvil-impersonated accounts. Not a production execution; production peerBridges(80002) was re-read afterwards and is still 0x0.",
+        "sequence": [
+          "timelock (the token address, impersonated) \u2192 setPeerBridge(80002, 0x\u2026080002) \u2192 peerBridges(80002) reads back",
+          "sender approve \u2192 initiateTransfer(token, 1e21, 80002, 0x\u2026DEADBEEF) \u2192 tx 0x610bdee8\u2026 in fork block 44565, bridge balance 3.1e22",
+          "transferId taken from the TransferInitiated event topic1 = 0x042747ea2a5accec78a15b09a77e2b9494e78b03e82d4ac469fb31af704a8174 (recomputing it from the source formula silently gave the wrong value: transferId binds block.timestamp, and the fork's timestamp was not what the script assumed)",
+          "validator 1 signTransfer \u2192 signatureCount 1 \u2192 recipient still 0 (threshold not reached, nothing released)",
+          "validator 2 signTransfer \u2192 signatureCount 2 \u2192 _executeTransfer fires \u2192 recipient 1e21, bridge back to 3e22",
+          "guards: same validator twice \u2192 'Already signed'; non-validator \u2192 'Not authorized validator'; stranger initiate \u2192 ERC20InsufficientAllowance"
+        ],
+        "notProven": "the 'Transfer exists' duplicate guard. transferId includes block.timestamp, so an identical replay in a later block produces a different id and the guard is effectively unreachable \u2014 recorded instead of claimed.",
+        "conclusion": "The multi-sig release path is functional with 3 registered validators and threshold 2. What is still missing is the INBOUND leg: _executeTransfer pays transfer.recipient from this bridge's balance on THIS chain, so a transfer destined for chain 80002 settles locally. That is the Phase-4 work."
+      }
+    },
+    "opcodesConfirmedExecuting": [
+      "PUSH0",
+      "MCOPY",
+      "TSTORE",
+      "TLOAD"
+    ],
+    "transactionInclusion": "PROVEN 2026-10-20 00:40 UTC: a 0-value legacy self-transfer was signed locally and submitted to eth_sendRawTransaction on the read-only besu-rpc node; it was mined in block 18260 as transactionIndex 0, status 0x1, gasUsed 21000, receipt identical via besu-sealer and besu-rpc, and the validator nonce advanced 0x19 -> 0x1a. Blocks showing '0 tx' reflect no traffic, not a consensus defect.",
+    "LXONStakingEnhanced": {
+      "runtimeCodeBytes": 10921,
+      "creationCodeBytes": 12666,
+      "deployGasUsed": 2606423,
+      "deployedInBlock": 32577,
+      "lxonToken": "0x99801a78639975d448eeb2f8a807738dc8df67dc",
+      "treasury": "0xFaE699d2848957c7c3bE67D8c90f0E456419cAdA",
+      "name": "LXON Staking Position",
+      "symbol": "LXONSP",
+      "MIN_STAKE": "1000000000000000000000",
+      "MAX_STAKE": "1000000000000000000000000",
+      "rolesOnDeployer": [
+        "DEFAULT_ADMIN_ROLE",
+        "PAUSER_ROLE",
+        "VAULT_MANAGER_ROLE"
+      ],
+      "liveStakeTest": {
+        "approve": "tx 0xf10d0522\u2026 (block 32828, 48169 gas) set the 1000e18 allowance",
+        "stake": "tx 0x5c3f0d44\u2026 (block 32832, 210452 gas), status 1: stakeId 0 / tokenId 0, 1e21 LXON moved into the contract, lockPeriod 2592000 (30 d), tier 0, balanceOf(deployer)=1, totalStakedAmount=1e21",
+        "unstake": "BLOCKED \u2014 eth_call unstake(0) from the actual staker reverts 'Flash loan detected' (0x08c379a0\u2026). See knownIssues.",
+        "residualState": "1000 LXON (1e21) sits in the staking contract against stakeId 0 and no function can move it out."
+      },
+      "status": "v1 \u2014 SUPERSEDED by 0x4645Fd49020DBa0C5eD16500694943365b776B2C (see LXONStakingEnhanced_v2_fixed). Its 1e21 remains trapped; unstake reverts forever."
+    },
+    "LXONStakingEnhanced_v2_fixed": {
+      "runtimeCodeBytes": 10754,
+      "deployedInBlock": 43735,
+      "exitProof": {
+        "setTreasury": "tx 0xee66dcf2\u2026 (block 43787) moved treasury to 0x\u2026dEaD so the penalty is observable",
+        "approve": "0x121f3de2\u2026 (43789)",
+        "stake": "0x571535d6\u2026 (43790) 1e21 in, status 1, lockPeriod 2592000",
+        "unstake": "0x50e8e30b\u2026 (43792) status 1 \u2014 THE EXIT NOW WORKS. contract balance 0, treasury(0x\u2026dEaD) = 1e20 exactly the 10% penalty, totalStakedAmount 0, ownerOf(0) = 0x0 (the NFT really burned)",
+        "control": "eth_call unstake(0) against the old 0x37e1c5eC\u2026 still reverts 'Flash loan detected'"
+      }
+    },
+    "batch_2026-10-21": {
+      "deployed": [
+        {
+          "name": "LXONStakingEnhanced_v2_fixed",
+          "address": "0x4645Fd49020DBa0C5eD16500694943365b776B2C"
+        },
+        {
+          "name": "LXONTOTPAuth",
+          "address": "0x39E542E91fe64E7e8b64D51ab7888519FF486C25"
+        },
+        {
+          "name": "LXONChipRegistry",
+          "address": "0x536050aDfB25d346fF0B173f3dff37f042CE43B8"
+        },
+        {
+          "name": "LXONCardRegistry",
+          "address": "0x6081aBeAC6e0D82A22bd4262e02e089357fd955F"
+        },
+        {
+          "name": "LXONNFT",
+          "address": "0x15F2C05Af78813604D9D4a3047E0Be8A759D6638"
+        },
+        {
+          "name": "LXONPhygitalBridge",
+          "address": "0xA2B47f17620D4CBC8CbAc47C54a8B36EDb344Bb8"
+        },
+        {
+          "name": "LXONHardwareWallet",
+          "address": "0x311b133ee775747B323F27Ab53c831bd52153c42"
+        },
+        {
+          "name": "LXONValidatorStaking",
+          "address": "0x0d927a4b95701AE348b961eA7FB7E5Dda0435196"
+        },
+        {
+          "name": "LXONSlashingContract",
+          "address": "0x26F325C38A1cf658D8B181Cac6c8fB1C3FFfD707"
+        },
+        {
+          "name": "BridgeValidatorRegistry",
+          "address": "0xd6C40F84cDD8c4C5dd03967EF2567abbAE27bC81"
+        },
+        {
+          "name": "VestingEscrow",
+          "address": "0x363d165543Bd9FeEFaF8fC036392ba11c96C455e"
+        },
+        {
+          "name": "LXONWrapper",
+          "address": "0x76EF25145ec71d72C6Bf8c1f0850466141eD6706"
+        },
+        {
+          "name": "LXONTBAccount",
+          "address": "0x7fE0C6e9aB0BaBc6d37ABd0314eB9A1A9A357aD5"
+        }
+      ],
+      "allSourceVerified": true,
+      "notes": "13 contracts deployed in blocks 43691-43737 through https://rpc.lxon.in and all 13 source-verified. Read-backs on chain: chip/card registries point at the TOTP authority, LXONNFT points at both registries + TOTP, totalSupply 1 with tokenId 1 owned by the deployer, phygital bridge/wallet wired to the XON native token (typed dependency), validator staking + slashing + vesting + wrapper wired to LxonTokenEnhanced, DEFAULT_ADMIN_ROLE held by the deployer on every AccessControl contract (hasRole returned true)."
+    },
+    "LXONWrapper_v2_collateralised": {
+      "runtimeCodeBytes": 3885,
+      "deployGasUsed": 1007511,
+      "deployedInBlock": 44335,
+      "address": "0xC0CF6B0E6C5a0705F319BA5c629a6Bc7E82FEf00",
+      "underlying": "0x99801a78639975d448eeb2f8a807738dc8df67dc (LxonTokenEnhanced, 18 decimals)",
+      "decimals": 18,
+      "decimalsConstantMatchesRuntime": true,
+      "freeMintClosed": "eth_call wrap(1e24) from 0x\u20260042 (0 LXON, 0 allowance) reverts ERC20InsufficientAllowance(0xC0CF6B0E\u2026, 0, 1e24). On the v1 address the identical call returned successfully.",
+      "liveRoundTrip": "approve 500e18 (block ~44336) \u2192 wrap (escrowed 500e18 == totalSupply 500e18 == collateralBalance() 500e18) \u2192 unwrap (escrowed 0, supply 0). Deployer LXON balance after the whole cycle: 99998900000000000000000000 \u2014 identical to before it, so the round trip neither created nor lost value.",
+      "testsProvingIt": "test/WrapperCollateral.t.sol, 7 tests, written test-first: 5 failed against v1's semantics before the code changed (including 'the underlying was actually escrowed: 0 != 500e18' and '18 != 6'). Full suite 15 suites / 218 passed / 0 failed."
+    },
+    "LXONWrapper_v1_unbacked": {
+      "address": "0x76EF25145ec71d72C6Bf8c1f0850466141eD6706",
+      "totalSupply": "0",
+      "holders": 0,
+      "underlyingHeld": "0",
+      "status": "SUPERSEDED by 0xC0CF6B0E6C5a0705F319BA5c629a6Bc7E82FEf00. Do not list or integrate: wrap() mints without collateral."
+    }
+  },
+  "sourceVerified": {
+    "at": "2026-10-19T21:12:39Z",
+    "bridgeRedeployedAt": "2026-10-19T21:52:00Z",
+    "service": "ghcr.io/blockscout/smart-contract-verifier (sc-verifier container, compilers cached in the sc-compilers volume)",
+    "backend": "Blockscout v7.0.2 with MICROSERVICE_SC_VERIFIER_TYPE=sc_verifier",
+    "route": "POST /api/v2/smart-contracts/{address}/verification/via/standard-input (multipart: files[input]=@stdjson;type=application/json, compiler_version, contract_name, constructor_args, autodetect_constructor_args=false, license_type)",
+    "input": "forge verify-contract --show-standard-json-input {address} {file}:{contract}",
+    "compiler": "v0.8.26+commit.8a97fa7a, evmVersion=cancun, viaIR=true, optimizer 200 runs",
+    "addresses": {
+      "LXONNativeToken": "partially_verified=true, abi 21 entries",
+      "LxonTokenEnhanced": "partially_verified=true, abi 71 entries, 25 additional sources",
+      "LXONBridgeEnhanced (v3 0x28c93c)": "partially_verified=true, abi 75 entries, 17 additional sources, all three constructor args decoded (_priceFeed, _timelock, _lxonToken)",
+      "LXONBridgeEnhanced (v2 0xb4927a)": "partially_verified=true, abi 74 entries - superseded minutes after deployment",
+      "LXONBridgeEnhanced (v1 0xbc18d2)": "partially_verified=true, abi 73 entries - superseded",
+      "LXONStakingEnhanced": "NOT verified. sc-verifier compiled and matched (14 s round trip, POST /api/v2/\u2026 logged by the microservice), but Blockscout's publish step aborted: \"Solidity smart-contract 0x37e1c5ec\u2026 failed to publish: #Ecto.Changeset<action: :insert, \u2026>\" and no row exists (select count(*) from smart_contracts where address_hash = \\x37e1c5\u2026 \u2192 0). The v1 route (module=contract&action=verifysourcecode&codeformat=solidity-standard-json-input) answers 'Fail - Unable to verify'. The explorer shows raw bytecode with no read/write tabs.",
+      "LXONStakingEnhanced v2 (0x4645Fd49\u2026)": "partially_verified=true, abi 80 entries, constructor args decoded (_lxonToken, 'LXON Staking Position', 'LXONSP')",
+      "LXONStakingEnhanced v1 (0x37e1c5eC\u2026)": "CANNOT be verified, and that is correct behaviour: it is the pre-fix build, so the current source does not match its runtime code. Resubmitting it with the fixed standard JSON fails the bytecode comparison.",
+      "LXONWrapper (v2 0xC0CF6B0E)": "verified via standard-input with license_type=none, compiler v0.8.26+commit.8a97fa7a, is_partially_verified=true, 43 ABI entries, constructor arg decoded to 0x99801A78\u202667dc. First poll after submission already showed the row.",
+      "LXONWrapper (v1 0x76EF2514)": "left unverified deliberately \u2014 verifying it would put a read/write UI behind a contract that mints unbacked supply."
+    },
+    "whyPartialMatch": "Blockscout's standard-json route matches the deployed bytecode, which it records as partially_verified. The flattened-code route would set it false, but its controller has no viaIR parameter (grep of verification_controller.ex at v7.0.2: 0 hits), so a viaIR build cannot be reproduced there and would fail the bytecode comparison. Standard-json is therefore the only working route for this project.",
+    "caveats": [
+      "Verification is async: the API answers {\"message\":\"Smart-contract verification started\"} and the row appears seconds later; poll /api/v2/smart-contracts/{address} for compiler_version.",
+      "The verifier must be able to write its compiler cache: the image runs as uid 1001 while a fresh named volume is root-owned, hence the sc-verifier-perms one-shot chown in the compose file.",
+      "source_code must be sent as the multipart field files[input] (a map). files[]=... makes Plug build a list, PublishHelper.prepare_files_array/1 returns [] and the API answers 'JSON files not found'."
+    ],
+    "at_batch": "2026-10-21T12:45:00Z \u2014 13 more addresses published (LXONTOTPAuth, LXONChipRegistry, LXONCardRegistry, LXONNFT, LXONPhygitalBridge, LXONHardwareWallet, LXONValidatorStaking, LXONSlashingContract, BridgeValidatorRegistry, VestingEscrow, LXONWrapper, LXONStakingEnhanced v2, LXONTBAccount).",
+    "licenseTypeRootCause": "SOLVED, and my earlier ERC-721/token-branch guess was wrong. The publish step dies on the multipart field license_type: 'MIT' -> changeset insert fails, 'none' -> publishes. Proof: LXONTOTPAuth is not a token, has no name/symbol/balanceOf in its ABI, and failed identically with MIT, then verified (compiler v0.8.26, 23 ABI entries) seconds later with none. Every contract in this batch went out with license_type=none. Consequence for the record's earlier note: nothing about Blockscout's token registration was involved, and nothing regressed at the HTTPS cutover \u2014 the two failed submissions were mine."
+  },
+  "knownIssues": [
+    "FIXED 2026-10-21 and redeployed: LXONStakingEnhanced.unstake(uint256) could never succeed on v1 (0x37e1c5eC\u2026) \u2014 the noFlashLoan modifier requires the contract's token balance not to drop, and paying the payout out is unstake's only effect, so every exit reverted 'Flash loan detected'. v2 at 0x4645Fd49\u2026 takes the modifier off unstake, sends the early-unstake penalty to treasury, and clears stakeOwner so the stake NFT really burns. Proven live: stake 1000e18 -> unstake -> contract balance 0, treasury +100e18, ownerOf(0)=0 (txs 0x571535d6\u2026 / 0x50e8e30b\u2026). 1000 LXON stays trapped in the v1 address; no function can move it, and v1 is unrecoverable.",
+    "Live bridge now has 3 registered validators at 10,000 LXON each (blocks 44515-44522) and the sign-to-release quorum is proven on a fork of the real bytecode. Two things remain true: no peer bridge is registered on production, so initiateTransfer still reverts 'Chain not registered'; and even with a peer, _executeTransfer pays the recipient on this chain, so the destination-chain leg does not exist yet. A placeholder peer was deliberately NOT scheduled through the 48h timelock \u2014 it would enable a mechanism whose release semantics are wrong and put real deposits behind them.",
+    "Two tokens named LXON coexist: LXONNativeToken (symbol XON, 100M, no roles) at 0xe801\u2026 and LxonTokenEnhanced (symbol LXON, now 100M, AccessControl+Permit+Timelock) at 0x9980\u2026. Pick one before any wallet or dApp integration, or rename one.",
+    "Bridge release semantics are single-chain only. signTransfer \u2192 _executeTransfer pays the recipient from this bridge's own balance; there is no inbound claim path (no completeTransfer/mint-on-verify), so a real second chain would need one. The `toChainId == block.chainid` guard that used to block the flow was removed rather than reworked \u2014 see the comment in _executeTransfer.",
+    "Deployer keeps MINTER_ROLE on LxonTokenEnhanced after the supply correction (it also holds DEFAULT_ADMIN, so it could re-grant itself). For a production token, minting belongs behind the timelock or a multisig.",
+    "Three bridge deployments are live at once (0xbc18\u2026, 0xb4927a\u2026, 0x28c93c\u2026). Only 0x28c93c\u2026 holds token roles; treat the other two as dead code that is still source-verified and discoverable.",
+    "Dead path discovered while wiring the device cluster: LXONPhygitalBridge.activatePhygital calls lxonToken.mintEcosystemReward(protocolAuthority, bonus, \"phygital_activation\"), but the deployed LXONNativeToken at 0xe801\u2026 exposes only transfer/approve/transferFrom/mint/burn/allowance/balanceOf/totalSupply/decimals/name/symbol/owner/INITIAL_SUPPLY/MAX_SUPPLY/transferOwnership (21-entry verified ABI, and mintEcosystemReward exists only in the undeployed LXONNativeToken.sol:491). So the activation bonus reverts; activation additionally needs a chip registered with a founder TOTP code. Token-bound hardware-wallet flow is therefore deployable but not yet functional end to end.",
+    "Superseded, not deleted: LXONWrapper v1 (0x76EF2514\u2026) is still on chain and still lets any caller mint unlimited wLXON with no collateral, because wrap() never touched originalLXON. Fixed in code and redeployed as v2 (0xC0CF6B0E6C5a0705F319BA5c629a6Bc7E82FEf00); v1 holds 0 LXON with 0 supply and 0 holders, so no funds moved, but the address stays discoverable and must not be listed anywhere.",
+    "Two tokens are now wired into two clusters each: the device cluster (phygital bridge, hardware wallet, TB account) is pinned to LXONNativeToken 0xe801\u2026 (symbol XON) because LXONPhygitalBridge/LXONHardwareWallet declare the state var as type LXONNativeToken; the finance cluster (validator staking, slashing, vesting, wrapper, staking v2) uses LxonTokenEnhanced 0x9980\u2026 (symbol LXON). The 'pick one before any wallet listing' issue is now load-bearing, not theoretical.",
+    "Not deployed: LXONCrossChainRouter (no LayerZero endpoint on 724 and no LayerZero package in lib/), LXONGovernanceHardened (wants an IVotes token; LxonTokenEnhanced is not one), the DEX/peg/price cluster (needs mock USDC/WETH + a self-funded pair to 'work' \u2014 declined 2026-10-21), 4 competing bridge rewrites, and the duplicate/test tokens.",
+    "Deliberate remaining hole in LXONWrapper v2: mint()/burnFrom() are MINTER_ROLE-gated and the deployer holds that role, so the admin can still print wLXON that this contract does not custody \u2014 legitimate only for wLXONBridge's custody-at-the-bridge model, which is not deployed. The BRIDGE_ROLE restriction that would close it was offered and not taken; it costs nothing to add now because supply is 0."
+  ],
+  "resolvedIssues": [
+    "2026-10-19: token.executeTimelock() reverted against the bridge (bridge setters required DEFAULT_ADMIN_ROLE, which the token never held). Fixed by gating the five parameter setters on an immutable timelock address instead of granting the token admin rights.",
+    "2026-10-19: LXONBridgeEnhanced declared TIMELOCK_ADMIN and TIMELOCK_DELAY but enforced neither. Setters are now actually delayed 48h through LxonTokenEnhanced; TIMELOCK_ADMIN on the bridge is documented as vestigial (it grants nothing).",
+    "2026-10-19: addValidator/removeValidator/slashValidator did IERC20(address(this)).safeTransferFrom/safeTransfer although the bridge holds no token, so all three reverted with 'Address with no code'. The bridge now takes an immutable lxonToken and the path was exercised on chain (1e22 staked and returned).",
+    "2026-10-19: signTransfer could never release a transfer \u2014 _executeTransfer required status Pending while every initiate path stored Locked. It now requires Locked and the multi-sig tests that were skipped for this pass.",
+    "2026-10-19: 6-vs-18 decimal mismatch. Convention fixed as 18 decimals; LxonTokenEnhanced totalSupply minted from 1e14 to 1e26 (100,000,000 LXON), and LXONStakingEnhanced MIN_STAKE/MAX_STAKE changed from *1e6 to *1e18.",
+    "2026-10-19: testGasSavingsPermitVsApprove panicked on `gasApprove - gasPermit` underflow and the permit tests signed for an address no key controlled. Both fixed; the unsupported 'permit is cheaper per call' assertion was removed.",
+    "2026-10-20: the public RPC was a chain-takeover vector \u2014 Besu exposed ADMIN/QBFT/MINER on 0.0.0.0:8545 with a world security-group rule, and on a QBFT n=1/f=0 chain a single anonymous qbft_proposeValidatorVote makes the caller a validator. Remediated: loopback-only port publishing, both SG rules revoked, API set trimmed to ETH,NET,WEB3,DEBUG,TXPOOL,TRACE, host allowlist pinned to localhost/127.0.0.1/besu-sealer, wildcard CORS dropped, and the explorer's advertised wallet RPC (JSON_RPC / NEXT_PUBLIC_NETWORK_RPC_URL) emptied. foundry.toml's `lxon` endpoint is now http://127.0.0.1:8545 behind an SSH tunnel.",
+    "2026-10-21: LXONWrapper's unbacked wrap/unwrap. wrap() now escrows LXON via SafeERC20 before minting, unwrap() burns then returns it 1:1, the declared DECIMALS = 6 constant contradicts the runtime 18 it was replaced with a decimals() override, and the no-redemption burn(uint256) was removed. Written test-first in test/WrapperCollateral.t.sol (5 of 7 tests fail against v1 before the change), redeployed at 0xC0CF6B0E\u2026 in block 44335, source-verified, and proved on chain with a 500 LXON wrap\u2192unwrap round trip that left the caller's balance byte-identical.",
+    "2026-10-21: minConfirmations=2 guarded nothing because validatorsRegistered was 0. Three validators registered with 1e22 stake each; VALIDATOR_ROLE granted to all three; quorum mechanics proven on a fork (see verified.LXONBridgeEnhanced.quorumProofOnFork)."
+  ],
+  "awsHandover": {
+    "at": "2026-10-21",
+    "document": "infrastructure/cloudformation/POLICY_GRANT_REQUEST.md",
+    "policy": "infrastructure/cloudformation/lxon-deploy-policy.json",
+    "summary": "Measured per-service: cloudformation, cloudtrail, backup, logs, s3, sns and all of iam are AccessDenied for devin-blockchain-deployer; ec2 Describe*, cloudwatch DescribeAlarms and ListMetrics are allowed. Templates audited: one YAML syntax bug fixed (validator-single:297), SGs open 22 and 8545 to 0.0.0.0/0 (the vector closed on the live node 2026-10-20), no UserData so nothing installs Besu, every RegionMap AMI is InvalidAMIID.NotFound in eu-north-1 (live node uses ami-0fd9576cca965bd19), ValidatorCount unused, alarms consume metrics nobody publishes."
+  },
+  "polygonMainnet137": {
+    "measuredAt": "2026-10-21T21:30:00Z",
+    "measuredVia": "cast against https://polygon-bor-rpc.publicnode.com at head 95,940,837; recheck with the commands in deployments/README.md",
+    "status": "NOT PART OF THE LXON CHAIN. These are leftovers of the September 2026 'Polygon as last resort' era. Nothing here is wired to chain 724 and none of it is backed.",
+    "controlledBy": "0x43410E73d2Ef4B2638BE10265e8BE3D2FDfFDc27",
+    "controllerWarning": "This account's private key was hardcoded in tracked source (see apps/contracts/hardhat.config.ts history and apps/founder-device/.env.example) and is exposed on GitHub until those commits are pushed and the account is rotated. Do not sign anything with it and do not fund anything with it.",
+    "tokens": {
+      "wLXON": {
+        "address": "0xB2CfeCb2aa1c53e8c4406146368222b6b3BbBbb6",
+        "name": "LXON Wrapped",
+        "symbol": "wLXON",
+        "decimals": 18,
+        "totalSupply": "4010000000001000000000000 = 4,010,000.000001",
+        "contract": "LXONWrapper, PRE-FIX: wrap() minted without pulling the underlying in, unwrap() burned without paying, so the supply is unbacked by construction",
+        "originalLXON": "0x0a26E5CC91C167B38633b28013AD8d5EF1F6904E",
+        "originalLXONReality": "0 bytes of code on Polygon AND 0 bytes on chain 724 \u2014 the asset this token claims to represent does not exist anywhere, so 1 wLXON redeems for nothing",
+        "admin": "hasRole(DEFAULT_ADMIN_ROLE=0x00..00, 0x43410E73..) = true; MINTER_ROLE = 0x9f2df0fed2c77648de5860a4cc508cd0818c85b8b8a1ab4ceeef8d981c8956a6, not held by that account",
+        "holders": "balanceOf(0x43410E73..) equals totalSupply exactly: the deployer wallet holds 100%",
+        "price": "NONE. DexScreener returns 0 pairs for this address; CoinGecko has no listing; the only pool, 0x6411341503ba6C1fEE4eafE1483Eea8831704F62 (wLXON/WMATIC on the Sushi V2 factory 0xc35DADB65012eC5796536bD9864eD8773aBc74C4), has getReserves 0/0, holds 0 of both tokens and LP totalSupply 0. A positive control on the same factory and the same code path read USDC/WETH at 76,641 USDC / ~31.0 WETH, so the zeros are real, not a failed read."
+      },
+      "LXON Test": {
+        "address": "0x8E7BE3BC21F8eDa71d192ECa502705c10274a813",
+        "decimals": 6,
+        "totalSupply": "1000000000000 = 1,000,000.0 at 6 decimals",
+        "owner": "0x43410E73..",
+        "note": "6-decimal asset; chain 724 settled on 18, so this is not the same unit as LXON there"
+      },
+      "LXON Settlement Asset": {
+        "address": "0xf6B053bE2849B057FC182aC6De62867662d2A206",
+        "decimals": 6,
+        "totalSupply": "100000000000 = 100,000.0 at 6 decimals",
+        "owner": "0x43410E73.."
+      }
+    },
+    "bridge": {
+      "address": "0x2e622d394CFFFA328FFad982c4BcE9d355B16143",
+      "control": "bare admin() = 0x43410E73..; no owner(), no ADMIN_ROLE",
+      "handover": "updateAdmin/setAdmin/changeAdmin ALL revert when called from the current admin, so there is probably no admin setter and this contract cannot be handed over \u2014 it must be abandoned"
+    },
+    "unidentifiedContracts": [
+      "0x86a7da576852126c8421F7a25F8dE7cEDF9553C4",
+      "0x3aD52bD5996f16C902225b0d9C111fafE6B77786",
+      "0x643a62a5472Ba3fA3eAbc834E3058eF2aBD07602"
+    ],
+    "unidentifiedContractsEvidence": "All three are byte-identical (6088 bytes, md5 of runtime code a86e712435a7213de7a36e4e67877b2a), all expose admin() = 0x43410E73.. in storage slot 0, none implements ERC-20 (symbol/name/decimals/totalSupply all revert) and none implements a Uniswap V2 pair (token0/token1/getReserves all revert). Their identity is NOT established: they do not match any local artifact, and the shared bytecode prefix is only Solidity's generic constructor preamble, so grep matching proves nothing.",
+    "relationToThisRecord": "Independent of chain 724. No peer bridge points at 137: on the live bridge 0x28C93C2af6B1d5349ba356A8735b343B2CAa4379, peerBridges(137) is 0x0.",
+    "doNot": [
+      "Do not compute a market cap from 4.01M x any price. There is no price and no backing.",
+      "Do not fund the wLXON/WMATIC pool to give it a price: that would be a self-quoted number on a public chain, paid for with a leaked key.",
+      "Do not treat deployments/active-contracts-report.json as evidence that a DEX with liquidity exists."
+    ]
+  }
+}

@@ -1,0 +1,66 @@
+# Caddy reverse proxy for the LXON explorer (HTTPS).
+#
+# The hostname comes from EXPLORER_DOMAIN in /opt/lxon/.env (Caddy expands {$VAR} at
+# config load), so this file has no machine-specific values in it.
+#
+# Single origin, path-routed:
+#   https://<domain>/api/...   -> Blockscout backend :4000  (v1 + v2 REST, /socket for WS)
+#   https://<domain>/          -> Blockscout frontend :3000
+# One A record, one certificate, and no CORS/mixed-content problems because the browser
+# only ever talks to one host over one scheme.
+#
+# Linting this file REQUIRES the variable, otherwise {$EXPLORER_DOMAIN} expands to nothing,
+# the site address disappears, and the parser reads "encode" as a global option:
+#   docker run --rm -e EXPLORER_DOMAIN=explorer.lxon.in -v "$PWD/caddy:/cfg" caddy:2 \
+#     caddy validate --config /cfg/Caddyfile --adapter caddyfile
+# That "unrecognized global option: encode" error is the missing env var, not a bad file.
+
+{$EXPLORER_DOMAIN} {
+	# ACME HTTP-01 on :80 is handled automatically by Caddy before this site block
+	# takes over; every plain-HTTP request is 301'd to HTTPS by default.
+
+	encode zstd gzip
+
+	# Security headers on responses that go to browsers.
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		# No wildcard: this origin talks only to itself. Blockscout's own CSP is set by
+		# the frontend; this just stops a stranger page framing the explorer.
+		delete "X-Powered-By"
+	}
+
+	# Explorer API (also the WebSocket endpoint the UI uses for live updates).
+	handle /api/* {
+		reverse_proxy blockscout-backend:4000
+	}
+
+	handle /socket/* {
+		reverse_proxy blockscout-backend:4000
+	}
+
+	# Anything that is not API traffic is the Next.js UI.
+	handle {
+		reverse_proxy blockscout-frontend:3000 {
+			# The frontend's SSR side asks for the public scheme/host; without these it
+			# would believe it is being served over plain http on :3000.
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Host {$EXPLORER_DOMAIN}
+		}
+	}
+
+	log {
+		# Structured access logs to stdout; the compose file caps them with the json-file
+		# driver (50 MB x 3), so there is nothing to rotate inside the container.
+		format json
+	}
+}
+
+# Optional extra sites, each a full site block in its own file. enable-public-rpc.sh drops
+# caddy/rpc-site.caddy in here as 02-rpc.caddy when the read-only RPC node goes live.
+# A glob that matches nothing is fine (Caddy logs a warning and the config still validates),
+# which is why the RPC site is *not* inline above: with RPC_DOMAIN unset an inline
+# {$RPC_DOMAIN} block would break this whole file and take the explorer's TLS down with it.
+import /etc/caddy/sites-enabled/*.caddy

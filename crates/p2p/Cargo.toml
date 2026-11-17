@@ -1,0 +1,21 @@
+[package]
+name = "p2p"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+libp2p.workspace = true
+parking_lot.workspace = true
+crypto-pqc = { path = "../crypto-pqc" }
+networking = { path = "../networking" }
+bincode.workspace = true
+
+[dev-dependencies]
+tokio-test = "0.4"

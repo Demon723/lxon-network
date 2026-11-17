@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add LXON Network to MetaMask</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .section {
+            margin-bottom: 25px;
+        }
+
+        .section h2 {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin-bottom: 10px;
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+        }
+
+        .button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .token-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            font-size: 13px;
+        }
+
+        .token-info p {
+            margin: 5px 0;
+            color: #666;
+        }
+
+        .token-info strong {
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>LXON Network Setup</h1>
+        <p class="subtitle">Add LXON network and tokens to MetaMask</p>
+
+        <div class="section">
+            <h2>Step 1: Add LXON Network</h2>
+            <button class="button" id="addNetworkBtn" onclick="addNetwork()">Add LXON Network</button>
+            <div id="networkStatus"></div>
+        </div>
+
+        <div class="section">
+            <h2>Step 2: Import LXON Token</h2>
+            <div class="token-info">
+                <p><strong>Symbol:</strong> LXON</p>
+                <p><strong>Address:</strong> 0xc0177883C0c662870855660495C697385FE040f5</p>
+                <p><strong>Decimals:</strong> 6</p>
+            </div>
+            <button class="button" id="addLxonBtn" onclick="addLxonToken()">Import LXON Token</button>
+            <div id="lxonStatus"></div>
+        </div>
+
+        <div class="section">
+            <h2>Step 3: Import USDC Token</h2>
+            <div class="token-info">
+                <p><strong>Symbol:</strong> USDC</p>
+                <p><strong>Address:</strong> 0x14711906a15BE7Cd861f0378D26b65D37bC5a9df</p>
+                <p><strong>Decimals:</strong> 18</p>
+            </div>
+            <button class="button" id="addUsdcBtn" onclick="addUsdcToken()">Import USDC Token</button>
+            <div id="usdcStatus"></div>
+        </div>
+
+        <div class="section">
+            <h2>Step 4: Import WETH Token (Optional)</h2>
+            <div class="token-info">
+                <p><strong>Symbol:</strong> WETH</p>
+                <p><strong>Address:</strong> 0x94DaB83AFE9b77c1ccf6c4963e530F22c928b92c</p>
+                <p><strong>Decimals:</strong> 18</p>
+            </div>
+            <button class="button" id="addWethBtn" onclick="addWethToken()">Import WETH Token</button>
+            <div id="wethStatus"></div>
+        </div>
+
+        <div class="section">
+            <button class="button" onclick="window.location.href='trading-interface-enhanced.html'">Go to Trading Interface</button>
+        </div>
+    </div>
+
+    <script>
+        const LXON_NETWORK = {
+            chainId: '0x2d4', // 724 in hex
+            chainName: 'LXON',
+            nativeCurrency: {
+                name: 'LXON',
+                symbol: 'LXON',
+                decimals: 18
+            },
+            rpcUrls: ['https://rpc.lxon.in'],
+            blockExplorerUrls: []
+        };
+
+        const LXON_TOKEN = {
+            type: 'ERC20',
+            options: {
+                address: '0xc0177883C0c662870855660495C697385FE040f5',
+                symbol: 'LXON',
+                decimals: 6,
+                image: 'https://lxon.network/lxon.png'
+            }
+        };
+
+        const USDC_TOKEN = {
+            type: 'ERC20',
+            options: {
+                address: '0x14711906a15BE7Cd861f0378D26b65D37bC5a9df',
+                symbol: 'USDC',
+                decimals: 18,
+                image: 'https://lxon.network/usdc.png'
+            }
+        };
+
+        const WETH_TOKEN = {
+            type: 'ERC20',
+            options: {
+                address: '0x94DaB83AFE9b77c1ccf6c4963e530F22c928b92c',
+                symbol: 'WETH',
+                decimals: 18,
+                image: 'https://lxon.network/weth.png'
+            }
+        };
+
+        function showStatus(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = 'status ' + type;
+            setTimeout(() => {
+                element.textContent = '';
+                element.className = 'status';
+            }, 5000);
+        }
+
+        async function addNetwork() {
+            if (!window.ethereum) {
+                showStatus('networkStatus', 'Please install MetaMask', 'error');
+                return;
+            }
+
+            try {
+                await window.ethereum.request({
+                    method: 'wallet_addEthereumChain',
+                    params: [LXON_NETWORK]
+                });
+                showStatus('networkStatus', '✅ LXON network added!', 'success');
+            } catch (error) {
+                if (error.code === 4902) {
+                    // Network already exists, try switching
+                    try {
+                        await window.ethereum.request({
+                            method: 'wallet_switchEthereumChain',
+                            params: [{ chainId: LXON_NETWORK.chainId }]
+                        });
+                        showStatus('networkStatus', '✅ Switched to LXON network!', 'success');
+                    } catch (switchError) {
+                        showStatus('networkStatus', 'Failed to switch network: ' + switchError.message, 'error');
+                    }
+                } else {
+                    showStatus('networkStatus', 'Failed to add network: ' + error.message, 'error');
+                }
+            }
+        }
+
+        async function addLxonToken() {
+            if (!window.ethereum) {
+                showStatus('lxonStatus', 'Please install MetaMask', 'error');
+                return;
+            }
+
+            try {
+                await window.ethereum.request({
+                    method: 'wallet_watchAsset',
+                    params: LXON_TOKEN
+                });
+                showStatus('lxonStatus', '✅ LXON token imported!', 'success');
+            } catch (error) {
+                showStatus('lxonStatus', 'Failed to import token: ' + error.message, 'error');
+            }
+        }
+
+        async function addUsdcToken() {
+            if (!window.ethereum) {
+                showStatus('usdcStatus', 'Please install MetaMask', 'error');
+                return;
+            }
+
+            try {
+                await window.ethereum.request({
+                    method: 'wallet_watchAsset',
+                    params: USDC_TOKEN
+                });
+                showStatus('usdcStatus', '✅ USDC token imported!', 'success');
+            } catch (error) {
+                showStatus('usdcStatus', 'Failed to import token: ' + error.message, 'error');
+            }
+        }
+
+        async function addWethToken() {
+            if (!window.ethereum) {
+                showStatus('wethStatus', 'Please install MetaMask', 'error');
+                return;
+            }
+
+            try {
+                await window.ethereum.request({
+                    method: 'wallet_watchAsset',
+                    params: WETH_TOKEN
+                });
+                showStatus('wethStatus', '✅ WETH token imported!', 'success');
+            } catch (error) {
+                showStatus('wethStatus', 'Failed to import token: ' + error.message, 'error');
+            }
+        }
+
+        // Check if already on LXON network
+        async function checkNetwork() {
+            if (window.ethereum) {
+                const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+                if (chainId === LXON_NETWORK.chainId) {
+                    showStatus('networkStatus', '✅ Already on LXON network', 'success');
+                }
+            }
+        }
+
+        window.addEventListener('load', checkNetwork);
+    </script>
+</body>
+</html>

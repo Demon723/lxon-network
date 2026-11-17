@@ -1,0 +1,37 @@
+# TLS front for the website. Installed only once www.lxon.in actually resolves to this instance;
+# expose-www.sh measures the A record and picks between this and www.http.caddy.
+#
+# No `:80 {}` block -- catchall.caddy owns the unmatched-Host response. The http:// site below is
+# host-specific, so HTTP-01 for this name and that catch-all coexist without competing for it.
+www.lxon.in {
+	root * /opt/lxon/www
+	encode zstd gzip
+
+	handle /app {
+		rewrite * /app/index.html
+		file_server
+	}
+	handle /app/* {
+		rewrite * /app/index.html
+		file_server
+	}
+	handle /swap {
+		rewrite * /swap/index.html
+		file_server
+	}
+	handle {
+		file_server
+	}
+
+	log {
+		output file /var/log/caddy/www-lxon-in.access.log {
+			roll_size 10MiB
+			roll_keep 5
+		}
+		format json
+	}
+}
+
+http://www.lxon.in {
+	redir https://www.lxon.in{uri} permanent
+}

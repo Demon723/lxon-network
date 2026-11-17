@@ -1,0 +1,17 @@
+[package]
+name = "lxon-privacy"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+crypto-pqc = { path = "../crypto-pqc" }
+serde.workspace = true
+sha3.workspace = true
+blake3.workspace = true
+rand.workspace = true
+rand_core.workspace = true
+thiserror.workspace = true
+hex.workspace = true
+curve25519-dalek.workspace = true
+zeroize.workspace = true
